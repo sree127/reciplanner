@@ -14,6 +14,8 @@ You need the database password from Supabase → Project Settings → Database.
 npx supabase login
 npx supabase link --project-ref <your-project-ref>   # the subdomain of SUPABASE_URL
 npx supabase db push --remote
+# Later milestones add files in supabase/migrations. Run the same command again;
+# it applies only the new ones. Milestone 2 loads the USDA ingredient catalog.
 ```
 
 Use the CLI rather than pasting SQL into the dashboard: the CLI records which migrations ran, so later milestones apply only their new files.
