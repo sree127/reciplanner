@@ -10,8 +10,8 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
   const scaledYield = recipe.yieldQty == null ? null : formatScaled(recipe.yieldQty, null, null, recipe.yieldLabel, factor);
 
   const per = recipe.macros.perServing;
-  const { missing, countedIngredients, totalIngredients } = recipe.macros;
-  const hasMacros = countedIngredients > 0;
+  const { missing, countedIngredients, totalIngredients, source } = recipe.macros;
+  const hasMacros = source === "web" || countedIngredients > 0;
   const macroStats = [
     { label: "Calories", value: Math.round(per.kcal), unit: "kcal" },
     { label: "Protein", value: Math.round(per.protein), unit: "g" },
@@ -64,10 +64,14 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
                 </div>
               ))}
             </dl>
-            {missing.length > 0 && (
-              <p className="mt-2 text-sm text-stone-500">
-                Estimated from {countedIngredients} of {totalIngredients} ingredients. No data yet for {missing.join(", ")}.
-              </p>
+            {source === "web" ? (
+              <p className="mt-2 text-sm text-stone-500">From the recipe source.</p>
+            ) : (
+              missing.length > 0 && (
+                <p className="mt-2 text-sm text-stone-500">
+                  Estimated from {countedIngredients} of {totalIngredients} ingredients. No data yet for {missing.join(", ")}.
+                </p>
+              )
             )}
           </>
         ) : (

@@ -13,6 +13,14 @@ export type ParsedIngredient = {
   note: string;
 };
 
+/** Per-serving nutrition, as most recipe sites publish it. */
+export type ParsedNutrition = {
+  kcal: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+};
+
 export type ParsedRecipe = {
   title: string;
   description: string;
@@ -24,6 +32,7 @@ export type ParsedRecipe = {
   sourceAuthor: string;
   ingredients: ParsedIngredient[];
   steps: string[];
+  nutrition: ParsedNutrition | null;
   usedAi: boolean;
 };
 
@@ -125,6 +134,29 @@ export function parseIngredientLine(raw: string): ParsedIngredient {
 
   const name = tokens.join(" ").replace(/\s+/g, " ").trim();
   return { raw: clean, qtyText, unitToken, name, note };
+}
+
+/** First number in a string like "250 kcal", "5 g", "1,234". */
+function numberFrom(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const m = value.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+
+/** schema.org NutritionInformation, per serving. Returns null unless it has at least calories. */
+export function parseNutrition(value: unknown): ParsedNutrition | null {
+  const node = Array.isArray(value) ? value.find((v) => v && typeof v === "object") : value;
+  if (!node || typeof node !== "object") return null;
+  const n = node as Record<string, unknown>;
+  const kcal = numberFrom(n.calories);
+  if (kcal == null) return null;
+  return {
+    kcal,
+    protein: numberFrom(n.proteinContent),
+    carbs: numberFrom(n.carbohydrateContent),
+    fat: numberFrom(n.fatContent),
+  };
 }
 
 /** ISO 8601 duration ("PT1H30M") to whole minutes. */
@@ -276,6 +308,7 @@ function fromJsonLd(recipe: JsonObject, url: string): ParsedRecipe {
       .map((line) => parseIngredientLine(String(line)))
       .filter((i) => i.name || i.raw),
     steps,
+    nutrition: parseNutrition(recipe.nutrition),
     usedAi: false,
   };
 }
@@ -375,6 +408,7 @@ export async function importFromUrl(rawUrl: string): Promise<ImportResult> {
     sourceAuthor: "",
     ingredients: ai.ingredients.map((line) => parseIngredientLine(line)).filter((i) => i.name || i.raw),
     steps: condenseSteps(ai.steps),
+    nutrition: null,
     usedAi: true,
   };
 }
