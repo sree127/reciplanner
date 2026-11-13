@@ -13,7 +13,7 @@ You need the database password from Supabase → Project Settings → Database.
 ```bash
 npx supabase login
 npx supabase link --project-ref <your-project-ref>   # the subdomain of SUPABASE_URL
-npx supabase db push --remote     
+npx supabase db push --remote
 ```
 
 Use the CLI rather than pasting SQL into the dashboard: the CLI records which migrations ran, so later milestones apply only their new files.
