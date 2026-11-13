@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "household_invites": {
+            "categories": {
+                  Row: {
+                    "household_id": string | null,"id": string,"name": string,"position": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "household_id"?: string | null,"id"?: string,"name": string,"position"?: number
+                  }
+                  Update: {
+                    "household_id"?: string | null,"id"?: string,"name"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "categories_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"household_invites": {
                   Row: {
                     "accepted_at": string | null,"accepted_by": string | null,"created_at": string,"email": string,"expires_at": string,"household_id": string,"id": string,"invited_by": string | null,"token": string
                   }
@@ -77,6 +97,72 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"ingredient_macros": {
+                  Row: {
+                    "carbs_g": number | null,"fat_g": number | null,"ingredient_id": string,"kcal": number | null,"protein_g": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"ingredient_id": string,"kcal"?: number | null,"protein_g"?: number | null
+                  }
+                  Update: {
+                    "carbs_g"?: number | null,"fat_g"?: number | null,"ingredient_id"?: string,"kcal"?: number | null,"protein_g"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ingredient_macros_ingredient_id_fkey"
+      columns: ["ingredient_id"]
+isOneToOne: true
+      referencedRelation: "ingredients"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ingredient_portions": {
+                  Row: {
+                    "grams": number,"id": string,"ingredient_id": string,"label": string | null,"unit_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "grams": number,"id"?: string,"ingredient_id": string,"label"?: string | null,"unit_id"?: string | null
+                  }
+                  Update: {
+                    "grams"?: number,"id"?: string,"ingredient_id"?: string,"label"?: string | null,"unit_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ingredient_portions_ingredient_id_fkey"
+      columns: ["ingredient_id"]
+isOneToOne: false
+      referencedRelation: "ingredients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ingredient_portions_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ingredients": {
+                  Row: {
+                    "aisle": string | null,"created_at": string,"density_g_per_ml": number | null,"fdc_id": number | null,"household_id": string | null,"id": string,"name": string,"search_text": string,"synonyms": (string)[]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"name": string,"search_text"?: string,"synonyms"?: (string)[]
+                  }
+                  Update: {
+                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"name"?: string,"search_text"?: string,"synonyms"?: (string)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ingredients_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"email": string,"id": string,"name": string | null
@@ -91,16 +177,152 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"recipes": {
+                },"recipe_categories": {
                   Row: {
-                    "cook_min": number | null,"created_at": string,"created_by": string | null,"description": string | null,"household_id": string,"id": string,"notes": string | null,"photo_url": string | null,"prep_min": number | null,"servings": number | null,"source_author": string | null,"source_type": Database["public"]['Enums']["recipe_source_type"],"source_url": string | null,"steps_style": Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min": number | null,"updated_at": string,"updated_by": string | null,"visibility": Database["public"]['Enums']["recipe_visibility"],"yield_qty": number | null,"yield_unit_label": string | null
+                    "category_id": string,"recipe_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id": string,"id"?: string,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
+                    "category_id": string,"recipe_id": string
                   }
                   Update: {
-                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id"?: string,"id"?: string,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title"?: string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
+                    "category_id"?: string,"recipe_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_categories_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_categories_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipe_ingredients": {
+                  Row: {
+                    "grams": number | null,"id": string,"ingredient_id": string,"note": string | null,"optional": boolean,"position": number,"qty_max": number | null,"qty_min": number | null,"raw_text": string | null,"recipe_id": string,"section_id": string | null,"unit_id": string | null,"unit_label": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "grams"?: number | null,"id"?: string,"ingredient_id": string,"note"?: string | null,"optional"?: boolean,"position": number,"qty_max"?: number | null,"qty_min"?: number | null,"raw_text"?: string | null,"recipe_id": string,"section_id"?: string | null,"unit_id"?: string | null,"unit_label"?: string | null
+                  }
+                  Update: {
+                    "grams"?: number | null,"id"?: string,"ingredient_id"?: string,"note"?: string | null,"optional"?: boolean,"position"?: number,"qty_max"?: number | null,"qty_min"?: number | null,"raw_text"?: string | null,"recipe_id"?: string,"section_id"?: string | null,"unit_id"?: string | null,"unit_label"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+      columns: ["ingredient_id"]
+isOneToOne: false
+      referencedRelation: "ingredients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_ingredients_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "recipe_sections"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_ingredients_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipe_sections": {
+                  Row: {
+                    "id": string,"position": number,"recipe_id": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"position": number,"recipe_id": string,"title": string
+                  }
+                  Update: {
+                    "id"?: string,"position"?: number,"recipe_id"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_sections_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipe_steps": {
+                  Row: {
+                    "id": string,"position": number,"recipe_id": string,"section_id": string | null,"text": string,"timer_sec": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"position": number,"recipe_id": string,"section_id"?: string | null,"text": string,"timer_sec"?: number | null
+                  }
+                  Update: {
+                    "id"?: string,"position"?: number,"recipe_id"?: string,"section_id"?: string | null,"text"?: string,"timer_sec"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_steps_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_steps_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "recipe_sections"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipe_tags": {
+                  Row: {
+                    "recipe_id": string,"tag_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "recipe_id": string,"tag_id": string
+                  }
+                  Update: {
+                    "recipe_id"?: string,"tag_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "recipe_tags_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "recipe_tags_tag_id_fkey"
+      columns: ["tag_id"]
+isOneToOne: false
+      referencedRelation: "tags"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"recipes": {
+                  Row: {
+                    "cook_min": number | null,"created_at": string,"created_by": string | null,"description": string | null,"household_id": string,"id": string,"is_favorite": boolean,"notes": string | null,"photo_url": string | null,"prep_min": number | null,"servings": number | null,"source_author": string | null,"source_type": Database["public"]['Enums']["recipe_source_type"],"source_url": string | null,"steps_style": Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min": number | null,"updated_at": string,"updated_by": string | null,"visibility": Database["public"]['Enums']["recipe_visibility"],"yield_qty": number | null,"yield_unit_label": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id": string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
+                  }
+                  Update: {
+                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id"?: string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title"?: string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
                   }
                   Relationships: [
                     {
@@ -111,6 +333,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"tags": {
+                  Row: {
+                    "created_at": string,"household_id": string,"id": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"household_id": string,"id"?: string,"name": string
+                  }
+                  Update: {
+                    "created_at"?: string,"household_id"?: string,"id"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tags_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"units": {
+                  Row: {
+                    "abbrev": string,"display": boolean,"id": string,"kind": Database["public"]['Enums']["unit_kind"],"name": string,"to_base_factor": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "abbrev": string,"display"?: boolean,"id": string,"kind": Database["public"]['Enums']["unit_kind"],"name": string,"to_base_factor": number
+                  }
+                  Update: {
+                    "abbrev"?: string,"display"?: boolean,"id"?: string,"kind"?: Database["public"]['Enums']["unit_kind"],"name"?: string,"to_base_factor"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -120,8 +376,14 @@ isOneToOne: false
             "accept_invite":
 { Args: { "p_leave_current"?: boolean,"p_token": string }; Returns: string
                            },
+"create_category":
+{ Args: { "p_name": string }; Returns: string
+                           },
 "create_household":
 { Args: { "p_name": string }; Returns: string
+                           },
+"create_ingredient":
+{ Args: { "p_carbs"?: number,"p_fat"?: number,"p_kcal"?: number,"p_name": string,"p_protein"?: number }; Returns: string
                            },
 "create_invite":
 { Args: { "p_email": string }; Returns: string
@@ -145,12 +407,51 @@ isOneToOne: false
               "expires_at": string,"household_name": string,"invited_by_name": string,"token": string
             }[]
                            },
+"save_recipe":
+{ Args: { "p_data": Json,"p_id": string }; Returns: string
+                           },
+"search_ingredients":
+{ Args: { "p_query": string }; Returns: {
+              "aisle": string,"custom": boolean,"density_g_per_ml": number,"id": string,"name": string,"portions": Json
+            }[]
+                           },
+"search_recipes":
+{ Args: { "p_category"?: string,"p_has"?: string,"p_lacks"?: string,"p_max_min"?: number,"p_query"?: string,"p_sort"?: string }; Returns: {
+              "cook_min": number | null,
+"created_at": string,
+"created_by": string | null,
+"description": string | null,
+"household_id": string,
+"id": string,
+"is_favorite": boolean,
+"notes": string | null,
+"photo_url": string | null,
+"prep_min": number | null,
+"servings": number | null,
+"source_author": string | null,
+"source_type": Database["public"]['Enums']["recipe_source_type"],
+"source_url": string | null,
+"steps_style": Database["public"]['Enums']["recipe_steps_style"],
+"title": string,
+"total_min": number | null,
+"updated_at": string,
+"updated_by": string | null,
+"visibility": Database["public"]['Enums']["recipe_visibility"],
+"yield_qty": number | null,
+"yield_unit_label": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "recipes"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "shares_household_with":
 { Args: { "p_user_id": string }; Returns: boolean
                            }
           }
           Enums: {
-            "household_role": "owner"|"member","recipe_source_type": "manual"|"web"|"instagram","recipe_steps_style": "full"|"short","recipe_visibility": "household"|"public"
+            "household_role": "owner"|"member","recipe_source_type": "manual"|"web"|"instagram","recipe_steps_style": "full"|"short","recipe_visibility": "household"|"public","unit_kind": "mass"|"volume"|"count"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -270,7 +571,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "household_role": ["owner", "member"],"recipe_source_type": ["manual", "web", "instagram"],"recipe_steps_style": ["full", "short"],"recipe_visibility": ["household", "public"]
+            "household_role": ["owner", "member"],"recipe_source_type": ["manual", "web", "instagram"],"recipe_steps_style": ["full", "short"],"recipe_visibility": ["household", "public"],"unit_kind": ["mass", "volume", "count"]
           }
         }
 } as const
