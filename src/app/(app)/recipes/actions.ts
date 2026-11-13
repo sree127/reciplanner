@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { Json } from "@/lib/supabase/database.types";
+import { aiAvailable, aiEstimateNutrition } from "@/lib/ai";
 import { requireUser } from "@/lib/data";
+import { formatScaled } from "@/lib/kitchen";
+import { getRecipe } from "@/lib/recipes";
+import type { Json } from "@/lib/supabase/database.types";
 
 export type IngredientHit = {
   id: string;
@@ -97,6 +100,69 @@ export async function saveRecipe(payload: {
   revalidatePath("/");
   revalidatePath(`/recipes/${data}`);
   redirect(`/recipes/${data}`);
+}
+
+export type NutritionInput = {
+  kcal: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+};
+
+/** Save per-serving macros as a manual override. Clearing every field drops back to the estimate. */
+export async function saveNutrition(
+  recipeId: string,
+  values: NutritionInput,
+): Promise<{ ok: true } | { error: string }> {
+  const { supabase } = await requireUser();
+  const clean = (v: number | null) => (v != null && Number.isFinite(v) && v >= 0 ? v : null);
+  const kcal = clean(values.kcal);
+  const protein = clean(values.protein);
+  const carbs = clean(values.carbs);
+  const fat = clean(values.fat);
+  const allEmpty = kcal == null && protein == null && carbs == null && fat == null;
+  const { error } = await supabase
+    .from("recipes")
+    .update({
+      nutrition_source: allEmpty ? null : "manual",
+      nutrition_kcal: kcal,
+      nutrition_protein_g: protein,
+      nutrition_carbs_g: carbs,
+      nutrition_fat_g: fat,
+    })
+    .eq("id", recipeId);
+  if (error) return { error: error.message };
+  revalidatePath(`/recipes/${recipeId}`);
+  return { ok: true };
+}
+
+/** Estimate per-serving macros from the recipe's ingredients with Gemini. Does not save. */
+export async function estimateNutrition(
+  recipeId: string,
+): Promise<{ values: NutritionInput } | { error: string }> {
+  if (!aiAvailable()) {
+    return { error: "Nutrition estimates aren't set up. Enter the values yourself." };
+  }
+  const recipe = await getRecipe(recipeId);
+  const ingredients = recipe.ingredients
+    .filter((line) => !line.optional)
+    .map((line) => `${formatScaled(line.qtyMin, line.qtyMax, line.unitId, line.unitLabel, 1)} ${line.name}`.trim())
+    .filter(Boolean);
+  if (ingredients.length === 0) {
+    return { error: "Add some ingredients first, then estimate." };
+  }
+  const result = await aiEstimateNutrition(recipe.title, recipe.servings, ingredients);
+  if (!result) {
+    return { error: "Couldn't estimate nutrition just now. Try again or enter the values yourself." };
+  }
+  return {
+    values: {
+      kcal: Math.round(result.kcal),
+      protein: Math.round(result.protein * 10) / 10,
+      carbs: Math.round(result.carbs * 10) / 10,
+      fat: Math.round(result.fat * 10) / 10,
+    },
+  };
 }
 
 export async function toggleFavorite(formData: FormData) {
