@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { RecipeView } from "@/components/recipe-view";
 import { getRecipe } from "@/lib/recipes";
 import { getListsForPicker } from "@/lib/shopping";
@@ -88,9 +89,12 @@ export default async function RecipePage({ params, searchParams }: PageProps<"/r
         </Link>
         <form action={deleteRecipe} className="flex-1">
           <input type="hidden" name="id" value={recipe.id} />
-          <button type="submit" className="h-12 w-full rounded-xl text-base font-semibold text-red-700 ring-1 ring-red-200">
+          <ConfirmSubmit
+            message={`Delete "${recipe.title}"? This can't be undone.`}
+            className="h-12 w-full rounded-xl text-base font-semibold text-red-700 ring-1 ring-red-200"
+          >
             Delete
-          </button>
+          </ConfirmSubmit>
         </form>
       </div>
     </>
