@@ -30,11 +30,14 @@ export type StepLine = { key: string; sectionId: string | null; text: string; ti
 
 export type SectionLine = { key: string; title: string };
 
-export type RecipeMacros = {
-  perServing: { kcal: number; protein: number; carbs: number; fat: number };
-  total: { kcal: number; protein: number; carbs: number; fat: number };
-  /** "web" when taken from the recipe source, "estimate" when computed from ingredients. */
-  source: "web" | "estimate";
+export type RecipeNutrition = {
+  /** Per-serving macros. A field is null when there is no value for it yet. */
+  perServing: { kcal: number | null; protein: number | null; carbs: number | null; fat: number | null };
+  /**
+   * Where the shown values came from: "web" from the recipe source, "manual" saved by a
+   * household member, "estimate" computed from ingredient macros, "none" when there is nothing.
+   */
+  source: "web" | "manual" | "estimate" | "none";
   countedIngredients: number;
   totalIngredients: number;
   missing: string[];
@@ -61,7 +64,7 @@ export type RecipeDetail = {
   sections: SectionLine[];
   ingredients: IngredientLine[];
   steps: StepLine[];
-  macros: RecipeMacros;
+  nutrition: RecipeNutrition;
 };
 
 function num(value: unknown): number | null {
@@ -181,41 +184,43 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
   }
 
   const servings = num(recipe.servings) ?? 1;
-  const webKcal = num(recipe.nutrition_kcal);
   const totalIngredients = ingredientLines.filter((l) => !l.optional).length;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
 
-  let macros: RecipeMacros;
-  if (recipe.nutrition_source === "web" && webKcal != null) {
-    // The recipe source published nutrition (per serving); trust it over the estimate.
-    const perServing = {
-      kcal: webKcal,
-      protein: num(recipe.nutrition_protein_g) ?? 0,
-      carbs: num(recipe.nutrition_carbs_g) ?? 0,
-      fat: num(recipe.nutrition_fat_g) ?? 0,
-    };
-    macros = {
-      perServing,
-      total: {
-        kcal: perServing.kcal * servings,
-        protein: perServing.protein * servings,
-        carbs: perServing.carbs * servings,
-        fat: perServing.fat * servings,
+  // A stored source (web import or a manual edit) overrides the ingredient estimate.
+  const storedSource = recipe.nutrition_source === "web" ? "web" : recipe.nutrition_source === "manual" ? "manual" : null;
+
+  let nutrition: RecipeNutrition;
+  if (storedSource) {
+    nutrition = {
+      perServing: {
+        kcal: num(recipe.nutrition_kcal),
+        protein: num(recipe.nutrition_protein_g),
+        carbs: num(recipe.nutrition_carbs_g),
+        fat: num(recipe.nutrition_fat_g),
       },
-      source: "web",
+      source: storedSource,
       countedIngredients: counted,
       totalIngredients,
-      missing: [],
+      missing,
     };
-  } else {
-    macros = {
-      total,
+  } else if (counted > 0) {
+    nutrition = {
       perServing: {
-        kcal: total.kcal / servings,
-        protein: total.protein / servings,
-        carbs: total.carbs / servings,
-        fat: total.fat / servings,
+        kcal: Math.round(total.kcal / servings),
+        protein: round1(total.protein / servings),
+        carbs: round1(total.carbs / servings),
+        fat: round1(total.fat / servings),
       },
       source: "estimate",
+      countedIngredients: counted,
+      totalIngredients,
+      missing,
+    };
+  } else {
+    nutrition = {
+      perServing: { kcal: null, protein: null, carbs: null, fat: null },
+      source: "none",
       countedIngredients: counted,
       totalIngredients,
       missing,
@@ -260,6 +265,6 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
       text: s.text,
       timerSec: s.timer_sec,
     })),
-    macros,
+    nutrition,
   };
 }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatScaled } from "@/lib/kitchen";
 import type { RecipeDetail } from "@/lib/recipes";
 import { IngredientAddButton } from "@/components/ingredient-add-button";
+import { NutritionEditor } from "@/components/nutrition-editor";
 
 export function RecipeView({
   recipe,
@@ -17,16 +18,6 @@ export function RecipeView({
   const hasLists = lists.length > 0;
   const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
   const scaledYield = recipe.yieldQty == null ? null : formatScaled(recipe.yieldQty, null, null, recipe.yieldLabel, factor);
-
-  const per = recipe.macros.perServing;
-  const { missing, countedIngredients, totalIngredients, source } = recipe.macros;
-  const hasMacros = source === "web" || countedIngredients > 0;
-  const macroStats = [
-    { label: "Calories", value: Math.round(per.kcal), unit: "kcal" },
-    { label: "Protein", value: Math.round(per.protein), unit: "g" },
-    { label: "Carbs", value: Math.round(per.carbs), unit: "g" },
-    { label: "Fat", value: Math.round(per.fat), unit: "g" },
-  ];
 
   const sectionTitle = new Map(recipe.sections.map((s) => [s.key, s.title]));
   const groups: { title: string | null; lines: RecipeDetail["ingredients"] }[] = [];
@@ -55,40 +46,7 @@ export function RecipeView({
         {scaledYield && <span className="mt-1 block text-sm text-stone-700">Makes {scaledYield}</span>}
       </label>
 
-      <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200" data-testid="macros">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold text-stone-900">Nutrition</h2>
-          <span className="text-sm text-stone-500">per serving</span>
-        </div>
-        {hasMacros ? (
-          <>
-            <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
-              {macroStats.map((stat) => (
-                <div key={stat.label} className="rounded-xl bg-stone-50 py-2">
-                  <dt className="text-xs uppercase tracking-wide text-stone-500">{stat.label}</dt>
-                  <dd className="text-lg font-semibold text-stone-900">
-                    {stat.value}
-                    <span className="ml-0.5 text-xs font-normal text-stone-500">{stat.unit}</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            {source === "web" ? (
-              <p className="mt-2 text-sm text-stone-500">From the recipe source.</p>
-            ) : (
-              missing.length > 0 && (
-                <p className="mt-2 text-sm text-stone-500">
-                  Estimated from {countedIngredients} of {totalIngredients} ingredients. No data yet for {missing.join(", ")}.
-                </p>
-              )
-            )}
-          </>
-        ) : (
-          <p className="mt-2 text-sm text-stone-500">
-            No nutrition data yet. Pick ingredients with a measured weight to see calories and macros.
-          </p>
-        )}
-      </section>
+      <NutritionEditor recipeId={recipe.id} nutrition={recipe.nutrition} />
 
       <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
         <h2 className="text-lg font-semibold text-stone-900">Ingredients</h2>

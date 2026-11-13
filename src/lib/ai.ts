@@ -73,6 +73,45 @@ export async function aiExtractRecipe(pageText: string, url: string): Promise<Ai
   };
 }
 
+export type AiNutrition = { kcal: number; protein: number; carbs: number; fat: number };
+
+/**
+ * Approximate the per-serving macros of a recipe from its ingredient list and servings.
+ * Metric units: kcal plus grams of protein, carbs and fat. Returns null without a key or on
+ * any failure, so manual editing stays the baseline.
+ */
+export async function aiEstimateNutrition(
+  title: string,
+  servings: number,
+  ingredients: string[],
+): Promise<AiNutrition | null> {
+  if (ingredients.length === 0) return null;
+  const perServing = servings > 0 ? servings : 1;
+  const prompt = [
+    "Estimate the approximate nutrition of this recipe from its ingredients, then divide by the",
+    `number of servings to give the values for ONE serving. The recipe makes ${perServing} serving(s).`,
+    "Use metric units: calories in kcal, and protein, carbohydrates and fat in grams.",
+    "Give realistic, rounded numbers for a single serving. Approximate when unsure; never return nulls or zero for calories.",
+    `\n\nRECIPE: ${title}\n\nINGREDIENTS:\n`,
+    ingredients.map((s) => `- ${s}`).join("\n"),
+  ].join(" ");
+  const result = (await generate(prompt, {
+    type: "object",
+    properties: {
+      kcal: { type: "number" },
+      protein: { type: "number" },
+      carbs: { type: "number" },
+      fat: { type: "number" },
+    },
+    required: ["kcal", "protein", "carbs", "fat"],
+  })) as Partial<AiNutrition> | null;
+  if (!result) return null;
+  const clean = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+  const kcal = clean(result.kcal);
+  if (kcal == null || kcal === 0) return null;
+  return { kcal, protein: clean(result.protein) ?? 0, carbs: clean(result.carbs) ?? 0, fat: clean(result.fat) ?? 0 };
+}
+
 /** Rewrite a long method into at most six short steps, keeping temperatures and times. */
 export async function aiCondenseSteps(steps: string[]): Promise<string[] | null> {
   if (steps.length === 0) return null;
