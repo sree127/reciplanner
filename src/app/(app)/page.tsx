@@ -96,9 +96,14 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
         </details>
       </form>
 
-      <Link href="/recipes/new" className="flex h-12 items-center justify-center rounded-xl bg-orange-600 text-base font-semibold text-white">
-        Add a recipe
-      </Link>
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/recipes/new" className="flex h-12 items-center justify-center rounded-xl bg-orange-600 text-base font-semibold text-white">
+          Add a recipe
+        </Link>
+        <Link href="/import" className="flex h-12 items-center justify-center rounded-xl bg-white text-base font-semibold text-stone-800 ring-1 ring-stone-300">
+          Import from a link
+        </Link>
+      </div>
 
       {recipes.length === 0 ? (
         <Card className="py-10 text-center">

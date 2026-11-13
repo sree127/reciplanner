@@ -37,6 +37,10 @@ export type EditorInitial = {
   categoryIds: string[];
   tags: string[];
   lines: Line[];
+  sourceUrl?: string;
+  sourceType?: string;
+  sourceAuthor?: string;
+  stepsStyle?: string;
 };
 
 const inputClass = "h-12 w-full rounded-xl border border-stone-300 bg-white px-3 text-base text-stone-900";
@@ -250,10 +254,26 @@ export function RecipeEditor({
       category_ids: state.categoryIds,
       tags: state.tags,
       lines,
+      source_url: state.sourceUrl ?? "",
+      source_type: state.sourceType ?? "",
+      source_author: state.sourceAuthor ?? "",
+      steps_style: state.stepsStyle ?? "",
     });
     if (draftKey) localStorage.setItem(draftKey, JSON.stringify(state));
     setPending(false);
     setError(result.error);
+  }
+
+  const unmatchedCount = state.lines.filter(
+    (line) => line.type === "ingredient" && !line.ingredientId && line.ingredientName.trim().length > 0,
+  ).length;
+  let sourceHost = "";
+  if (state.sourceUrl) {
+    try {
+      sourceHost = new URL(state.sourceUrl).hostname.replace(/^www\./, "");
+    } catch {
+      sourceHost = state.sourceUrl;
+    }
   }
 
   const activeLine = state.lines.find((line) => line.key === active && line.type === "ingredient");
@@ -270,6 +290,25 @@ export function RecipeEditor({
         void onSubmit();
       }}
     >
+      {state.sourceUrl && (
+        <div className="rounded-xl bg-orange-50 px-3 py-3 text-sm ring-1 ring-orange-200" data-testid="import-banner">
+          <p className="font-semibold text-stone-900">
+            Imported{sourceHost ? ` from ${sourceHost}` : ""}. Check it over, then save.
+          </p>
+          {unmatchedCount > 0 ? (
+            <p className="mt-1 text-stone-700" data-testid="unmatched-note">
+              {unmatchedCount} ingredient{unmatchedCount === 1 ? "" : "s"} need{unmatchedCount === 1 ? "s" : ""} a match —
+              tap the highlighted ones to pick from the catalog or add them.
+            </p>
+          ) : (
+            <p className="mt-1 text-stone-700">All ingredients matched the catalog.</p>
+          )}
+          <a href={state.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block font-semibold text-orange-700 underline">
+            View the original
+          </a>
+        </div>
+      )}
+
       {restored && (
         <p className="flex items-center justify-between rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-950">
           Draft restored.
@@ -424,10 +463,11 @@ export function RecipeEditor({
                 </div>
                 <div className="relative">
                   <input
-                    className={inputClass}
+                    className={`${inputClass} ${line.ingredientName.trim() && !line.ingredientId ? "border-amber-500 ring-2 ring-amber-300" : ""}`}
                     aria-label="Ingredient"
                     autoComplete="off"
                     placeholder="Search the catalog"
+                    data-unmatched={line.ingredientName.trim() && !line.ingredientId ? "true" : undefined}
                     value={line.ingredientName}
                     onChange={(e) => void onIngredientInput(line.key, e.target.value)}
                     onFocus={() => setActive(line.key)}
