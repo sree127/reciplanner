@@ -27,12 +27,14 @@ test("add a recipe to a list (merging duplicates) and tick it live across member
   await owner.getByRole("button", { name: "Save recipe" }).click();
   await expect(owner.getByTestId("recipe-title")).toHaveText("Tomato base");
 
-  // Add the recipe twice; the two tomato lines merge into one 800 g line.
-  const addButton = owner.getByRole("button", { name: "Add to shopping list" });
-  await addButton.click();
-  await expect(owner.getByTestId("add-to-list-message")).toContainText("Added 1 ingredient");
-  await addButton.click();
-  await expect(owner.getByTestId("add-to-list-message")).toContainText("Added 1 ingredient");
+  // Add the tomato ingredient twice; with one list it adds straight away and the two
+  // 400 g lines merge into one 800 g line.
+  const addTomato = owner.getByTestId("ingredient-line").filter({ hasText: "Tomato" }).getByTestId("ingredient-add");
+  await addTomato.click();
+  await expect(addTomato).toHaveText("✓");
+  await expect(addTomato).toHaveText("+");
+  await addTomato.click();
+  await expect(addTomato).toHaveText("✓");
 
   await owner.goto("/lists");
   await owner.getByTestId("list-card").first().click();

@@ -53,20 +53,20 @@ export async function clearChecked(formData: FormData): Promise<void> {
   revalidatePath(`/lists/${listId}`);
 }
 
-/** One-click add of a recipe's ingredients to a list, scaled to the shown servings. */
-export async function addRecipeToList(
+/** Add a single recipe ingredient to a chosen list, scaled to the shown servings. */
+export async function addIngredientToList(
   listId: string,
-  recipeId: string,
+  recipeIngredientId: string,
   servings: number,
-): Promise<{ count: number } | { error: string }> {
+): Promise<{ name: string } | { error: string }> {
   const { supabase } = await requireUser();
-  const { data, error } = await supabase.rpc("add_recipe_to_list", {
+  const { data, error } = await supabase.rpc("add_ingredient_to_list", {
     p_list_id: listId,
-    p_recipe_id: recipeId,
+    p_recipe_ingredient_id: recipeIngredientId,
     p_servings: servings,
   });
   if (error) return { error: error.message };
   revalidatePath(`/lists/${listId}`);
   revalidatePath("/lists");
-  return { count: data ?? 0 };
+  return { name: data ?? "Ingredient" };
 }

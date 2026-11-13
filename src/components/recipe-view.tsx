@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { formatScaled } from "@/lib/kitchen";
 import type { RecipeDetail } from "@/lib/recipes";
-import { AddToList } from "@/components/add-to-list";
+import { IngredientAddButton } from "@/components/ingredient-add-button";
 
 export function RecipeView({
   recipe,
@@ -13,6 +14,7 @@ export function RecipeView({
   lists: { id: string; name: string; isDefault: boolean }[];
 }) {
   const [servings, setServings] = useState(recipe.servings);
+  const hasLists = lists.length > 0;
   const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
   const scaledYield = recipe.yieldQty == null ? null : formatScaled(recipe.yieldQty, null, null, recipe.yieldLabel, factor);
 
@@ -86,28 +88,45 @@ export function RecipeView({
 
       <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
         <h2 className="text-lg font-semibold text-stone-900">Ingredients</h2>
+        {hasLists ? (
+          <p className="mt-0.5 text-sm text-stone-500">Tap + to add an ingredient to a shopping list.</p>
+        ) : (
+          <p className="mt-0.5 text-sm text-stone-500">
+            Create a{" "}
+            <Link href="/lists" className="font-semibold text-orange-700 underline">shopping list</Link>{" "}
+            to add ingredients.
+          </p>
+        )}
         {groups.map((group) => (
           <div key={group.title ?? "main"} className="mt-3">
             {group.title && <h3 className="text-sm font-semibold uppercase tracking-wide text-stone-500">{group.title}</h3>}
             <ul className="mt-1 divide-y divide-stone-100">
               {group.lines.map((line) => (
-                <li key={line.key} className="py-2.5" data-testid="ingredient-line">
-                  <p className="text-stone-900">
-                    <span className="font-semibold">
-                      {formatScaled(line.qtyMin, line.qtyMax, line.unitId, line.unitLabel, factor)}
-                    </span>{" "}
-                    {line.name}
-                    {line.optional && <span className="text-stone-500"> (optional)</span>}
-                  </p>
-                  {line.note && <p className="text-sm text-stone-500">{line.note}</p>}
+                <li key={line.key} className="flex items-start justify-between gap-3 py-2.5" data-testid="ingredient-line">
+                  <div className="min-w-0">
+                    <p className="text-stone-900">
+                      <span className="font-semibold">
+                        {formatScaled(line.qtyMin, line.qtyMax, line.unitId, line.unitLabel, factor)}
+                      </span>{" "}
+                      {line.name}
+                      {line.optional && <span className="text-stone-500"> (optional)</span>}
+                    </p>
+                    {line.note && <p className="text-sm text-stone-500">{line.note}</p>}
+                  </div>
+                  {hasLists && (
+                    <IngredientAddButton
+                      recipeIngredientId={line.key}
+                      ingredientName={line.name}
+                      servings={servings}
+                      lists={lists}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
           </div>
         ))}
       </section>
-
-      <AddToList recipeId={recipe.id} servings={servings} lists={lists} />
 
       {recipe.steps.length > 0 && (
         <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">

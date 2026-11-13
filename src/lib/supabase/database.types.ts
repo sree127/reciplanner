@@ -474,11 +474,11 @@ isOneToOne: false
             "accept_invite":
 { Args: { "p_leave_current"?: boolean,"p_token": string }; Returns: string
                            },
+"add_ingredient_to_list":
+{ Args: { "p_list_id": string,"p_recipe_ingredient_id": string,"p_servings": number }; Returns: string
+                           },
 "add_manual_item":
 { Args: { "p_aisle"?: string,"p_list_id": string,"p_name": string }; Returns: string
-                           },
-"add_recipe_to_list":
-{ Args: { "p_list_id": string,"p_recipe_id": string,"p_servings": number }; Returns: number
                            },
 "clear_checked_items":
 { Args: { "p_list_id": string }; Returns: number
