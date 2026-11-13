@@ -145,14 +145,14 @@ isOneToOne: false
                   ]
                 },"ingredients": {
                   Row: {
-                    "aisle": string | null,"created_at": string,"density_g_per_ml": number | null,"fdc_id": number | null,"household_id": string | null,"id": string,"name": string,"search_text": string,"synonyms": (string)[]
+                    "aisle": string | null,"created_at": string,"density_g_per_ml": number | null,"fdc_id": number | null,"household_id": string | null,"id": string,"is_common": boolean,"name": string,"search_text": string,"synonyms": (string)[]
                   }
                   ComputedFields: never
                   Insert: {
-                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"name": string,"search_text"?: string,"synonyms"?: (string)[]
+                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"is_common"?: boolean,"name": string,"search_text"?: string,"synonyms"?: (string)[]
                   }
                   Update: {
-                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"name"?: string,"search_text"?: string,"synonyms"?: (string)[]
+                    "aisle"?: string | null,"created_at"?: string,"density_g_per_ml"?: number | null,"fdc_id"?: number | null,"household_id"?: string | null,"id"?: string,"is_common"?: boolean,"name"?: string,"search_text"?: string,"synonyms"?: (string)[]
                   }
                   Relationships: [
                     {
@@ -411,7 +411,7 @@ isOneToOne: false
 { Args: { "p_data": Json,"p_id": string }; Returns: string
                            },
 "search_ingredients":
-{ Args: { "p_query": string }; Returns: {
+{ Args: { "p_all"?: boolean,"p_query": string }; Returns: {
               "aisle": string,"custom": boolean,"density_g_per_ml": number,"id": string,"name": string,"portions": Json
             }[]
                            },
