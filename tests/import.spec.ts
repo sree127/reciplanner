@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { signInWithCode, uniqueEmail } from "./helpers";
 
-test("import a recipe from a link, fix the unmatched ingredient, and save", async ({ browser }) => {
+test("import a recipe from a link in one step and save it", async ({ browser }) => {
   const owner = await (await browser.newContext()).newPage();
   await signInWithCode(owner, uniqueEmail("importer"));
   await owner.getByLabel("Household name").fill("Import kitchen");
@@ -10,35 +10,25 @@ test("import a recipe from a link, fix the unmatched ingredient, and save", asyn
 
   await owner.goto("/import");
   await owner.getByLabel("Recipe link").fill("http://127.0.0.1:8787/soup.html");
-  await owner.getByRole("button", { name: "Import recipe" }).click();
+  await owner.getByRole("button", { name: "Import and save" }).click();
 
-  // Lands on the review screen, prefilled from the page's schema.org data.
-  await owner.waitForURL(/\/import\/[0-9a-f-]+$/);
-  await expect(owner.getByLabel("Title")).toHaveValue("Weeknight Lentil Soup");
-  await expect(owner.getByTestId("import-banner")).toBeVisible();
-  await expect(owner.getByTestId("unmatched-note")).toContainText("1 ingredient");
-
-  // The method was condensed to at most six steps.
-  const steps = owner.getByLabel("Step", { exact: true });
-  expect(await steps.count()).toBeLessThanOrEqual(6);
-
-  // Six of seven ingredients matched the catalog; one is flagged for the cook.
-  const unmatched = owner.locator('input[aria-label="Ingredient"][data-unmatched="true"]');
-  await expect(unmatched).toHaveCount(1);
-  await expect(owner.getByLabel("Ingredient").first()).toHaveValue("Onion");
-
-  // Fix the flagged ingredient by picking a catalog item.
-  await unmatched.fill("Chilli powder");
-  await owner.getByRole("option", { name: /^Chilli powder/ }).first().click();
-  await expect(owner.locator('input[aria-label="Ingredient"][data-unmatched="true"]')).toHaveCount(0);
-
-  await owner.getByRole("button", { name: "Save recipe" }).click();
+  // One click: lands straight on the saved recipe, read from the page's schema.org data.
+  await owner.waitForURL(/\/recipes\/[0-9a-f-]+/);
   await expect(owner.getByTestId("recipe-title")).toHaveText("Weeknight Lentil Soup");
+  await expect(owner.getByTestId("imported-note")).toBeVisible();
 
-  // The saved recipe links back to the source and keeps the condensed method.
+  // Every ingredient was kept — matched ones and the unmatched "secret chilli paste",
+  // which was added to the household catalog rather than dropped.
+  const ingredients = owner.getByTestId("ingredient-line");
+  await expect(ingredients.filter({ hasText: "Onion" })).toHaveCount(1);
+  await expect(ingredients.filter({ hasText: /chilli paste/i })).toHaveCount(1);
+
+  // The method was condensed to at most six steps, keeping the final merged step.
+  await expect(owner.getByText("Blend half the soup", { exact: false })).toBeVisible();
+  expect(await owner.locator("ol li").count()).toBeLessThanOrEqual(6);
+
+  // The saved recipe links back to the source page and its author.
   const source = owner.getByTestId("recipe-source");
   await expect(source).toContainText("127.0.0.1");
   await expect(source).toContainText("Nonna Rosa");
-  await expect(owner.getByText("Blend half the soup", { exact: false })).toBeVisible();
-  expect(await owner.locator("ol li").count()).toBeLessThanOrEqual(6);
 });

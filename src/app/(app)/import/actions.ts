@@ -1,44 +1,24 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getMyHousehold, requireUser } from "@/lib/data";
 import { importFromUrl, type ParsedIngredient } from "@/lib/import";
-import { searchIngredients, type IngredientHit } from "@/app/(app)/recipes/actions";
+import { convertQuantity } from "@/lib/kitchen";
+import { searchIngredients } from "@/app/(app)/recipes/actions";
+import type { Json } from "@/lib/supabase/database.types";
 
-export type ReviewIngredient = {
-  qtyText: string;
-  unitToken: string;
-  name: string;
-  note: string;
-  toTaste: boolean;
-  ingredientId: string | null;
-  matchedName: string | null;
-  density: number | null;
-  portions: IngredientHit["portions"];
-};
-
-export type ReviewData = {
-  title: string;
-  description: string;
-  servings: string;
-  prepMin: string;
-  cookMin: string;
-  photoUrl: string;
-  sourceUrl: string;
-  sourceAuthor: string;
-  usedAi: boolean;
-  unmatched: number;
-  ingredients: ReviewIngredient[];
-  steps: string[];
-};
+function toImport(error: string): never {
+  redirect(`/import?error=${encodeURIComponent(error)}`);
+}
 
 function normalize(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-/** Accept a catalog hit only when it clearly refers to the same thing, so weak guesses
- * are left for the cook to confirm on the review screen. Deliberately conservative: a
- * shared single word (e.g. "paste") is not enough. */
+/** Accept a catalog match only when it clearly refers to the same thing. Deliberately
+ * conservative: a shared single word (e.g. "paste") is not enough, so weak guesses become
+ * new household ingredients instead of silently mislabelling the line. */
 function isConfident(name: string, hitName: string): boolean {
   const a = normalize(name);
   const b = normalize(hitName);
@@ -46,72 +26,107 @@ function isConfident(name: string, hitName: string): boolean {
   return a === b || a.includes(b) || b.includes(a);
 }
 
-async function matchIngredient(ing: ParsedIngredient): Promise<ReviewIngredient> {
-  const toTaste = !ing.qtyText && /to taste/i.test(`${ing.note} ${ing.raw}`);
-  const base: ReviewIngredient = {
-    qtyText: ing.qtyText,
-    unitToken: ing.unitToken || (toTaste ? "" : "g"),
-    name: ing.name || ing.raw,
-    note: ing.note,
-    toTaste,
-    ingredientId: null,
-    matchedName: null,
-    density: null,
-    portions: [],
-  };
-  const query = (ing.name || ing.raw).trim();
-  if (query.length < 2) return base;
-
+async function matchIngredient(name: string): Promise<{ id: string; density: number | null } | null> {
+  const query = name.trim();
+  if (query.length < 2) return null;
   let hits = await searchIngredients(query);
   let hit = hits.find((h) => isConfident(query, h.name));
   if (!hit) {
     hits = await searchIngredients(query, true);
     hit = hits.find((h) => isConfident(query, h.name));
   }
-  if (!hit) return base;
-  return {
-    ...base,
-    ingredientId: hit.id,
-    matchedName: hit.name,
-    density: hit.density,
-    portions: hit.portions,
-  };
+  return hit ? { id: hit.id, density: hit.density } : null;
 }
 
+/** Build a recipe ingredient line, converting the parsed quantity to metric. Lines whose
+ * quantity can't be parsed are kept with their original text so nothing is dropped. */
+function buildLine(ingredientId: string, ing: ParsedIngredient, density: number | null, toTaste: boolean): Json {
+  const base: Record<string, Json> = {
+    type: "ingredient",
+    ingredient_id: ingredientId,
+    note: ing.note || "",
+    raw_text: ing.raw,
+  };
+  if (toTaste) return { ...base, unit_label: "to taste" };
+  if (ing.qtyText && ing.unitToken) {
+    const conv = convertQuantity({ qtyText: ing.qtyText, unitToken: ing.unitToken, density, toTaste: false });
+    if (!("error" in conv)) {
+      return {
+        ...base,
+        qty_min: conv.qtyMin,
+        qty_max: conv.qtyMax,
+        unit_id: conv.unitId,
+        unit_label: conv.unitLabel,
+        grams: conv.grams,
+      };
+    }
+  }
+  return base;
+}
+
+/** Paste a link and get a saved recipe in one step: fetch the page, read its recipe data,
+ * convert the ingredients to metric, match them to the catalog (creating a household
+ * ingredient for anything unmatched), condense the steps, and save. Lands on the recipe. */
 export async function startImport(formData: FormData): Promise<void> {
   const url = String(formData.get("url") ?? "").trim();
-  const { supabase, userId } = await requireUser();
+  if (!url) toImport("Paste a recipe link first.");
+
+  const { supabase } = await requireUser();
   const household = await getMyHousehold();
   if (!household) redirect("/");
 
-  const { data: job, error } = await supabase
-    .from("import_jobs")
-    .insert({ household_id: household.id, created_by: userId, url, source_type: "web", status: "pending" })
-    .select("id")
-    .single();
-  if (error || !job) throw error ?? new Error("Could not start the import.");
-
   const result = await importFromUrl(url);
-  if ("error" in result) {
-    await supabase.from("import_jobs").update({ status: "error", error: result.error }).eq("id", job.id);
-    redirect(`/import/${job.id}`);
+  if ("error" in result) toImport(result.error);
+
+  const lines: Json[] = [];
+  let created = 0;
+  for (const ing of result.ingredients) {
+    const name = (ing.name || ing.raw).trim();
+    if (!name) continue;
+    const toTaste = !ing.qtyText && /to taste/i.test(`${ing.note} ${ing.raw}`);
+
+    const match = await matchIngredient(name);
+    let ingredientId = match?.id ?? null;
+    const density = match?.density ?? null;
+    if (!ingredientId) {
+      const { data, error } = await supabase.rpc("create_ingredient", { p_name: name.slice(0, 200) });
+      if (error || !data) continue;
+      ingredientId = data;
+      created += 1;
+    }
+    lines.push(buildLine(ingredientId, ing, density, toTaste));
   }
 
-  const ingredients = await Promise.all(result.ingredients.map(matchIngredient));
-  const review: ReviewData = {
-    title: result.title,
-    description: result.description,
-    servings: result.servings ? String(result.servings) : "4",
-    prepMin: result.prepMin != null ? String(result.prepMin) : "",
-    cookMin: result.cookMin != null ? String(result.cookMin) : "",
-    photoUrl: result.photoUrl,
-    sourceUrl: result.sourceUrl,
-    sourceAuthor: result.sourceAuthor,
-    usedAi: result.usedAi,
-    unmatched: ingredients.filter((i) => !i.ingredientId).length,
-    ingredients,
-    steps: result.steps,
-  };
-  await supabase.from("import_jobs").update({ status: "done", parsed_json: review }).eq("id", job.id);
-  redirect(`/import/${job.id}`);
+  if (!lines.length) toImport("No ingredients were found on that page. You can still add the recipe by hand.");
+
+  for (const text of result.steps) {
+    const trimmed = text.trim();
+    if (trimmed) lines.push({ type: "step", text: trimmed.slice(0, 1000) });
+  }
+
+  const { data: id, error } = await supabase.rpc("save_recipe", {
+    p_id: "",
+    p_data: {
+      title: result.title || "Imported recipe",
+      description: result.description || "",
+      servings: result.servings && result.servings > 0 ? result.servings : 4,
+      yield_qty: null,
+      yield_unit_label: "",
+      prep_min: result.prepMin,
+      cook_min: result.cookMin,
+      notes: "",
+      photo_url: result.photoUrl || "",
+      category_ids: [],
+      tags: [],
+      lines,
+      source_url: result.sourceUrl || url,
+      source_type: "web",
+      source_author: result.sourceAuthor || "",
+      steps_style: "short",
+    },
+  });
+  if (error || !id) toImport(error?.message ?? "Could not save the imported recipe.");
+
+  revalidatePath("/");
+  redirect(`/recipes/${id}?imported=${created}`);
 }
