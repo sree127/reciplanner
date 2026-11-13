@@ -26,7 +26,6 @@ test("import a recipe from a link, fix the unmatched ingredient, and save", asyn
   const unmatched = owner.locator('input[aria-label="Ingredient"][data-unmatched="true"]');
   await expect(unmatched).toHaveCount(1);
   await expect(owner.getByLabel("Ingredient").first()).toHaveValue("Onion");
-  await owner.screenshot({ path: "media/milestone-4-import-review.png", fullPage: true });
 
   // Fix the flagged ingredient by picking a catalog item.
   await unmatched.fill("Chilli powder");
