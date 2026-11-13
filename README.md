@@ -31,7 +31,7 @@ In Supabase → Authentication:
 ### 3. Deploy to Vercel (about 5 minutes)
 
 1. Vercel → Add New → Project → import `sree127/reciplanner`.
-2. Add environment variables `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
+2. Add environment variables `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (and, to turn on the AI nutrition estimate and step condensing, `GEMINI_API_KEY`). Set them for both Production and Preview.
 3. Deploy. Use the resulting URL in step 2.1.
 
 ## Environment variables
@@ -41,8 +41,10 @@ In Supabase → Authentication:
 | `SUPABASE_URL` | Project URL. A trailing `/rest/v1/` is accepted. |
 | `SUPABASE_PUBLISHABLE_KEY` | Browser-safe key; all access is limited by row-level security. |
 | `ENABLE_GOOGLE_LOGIN` | Optional. `true` shows "Continue with Google" (enable the Google provider in Supabase first). |
+| `GEMINI_API_KEY` | Optional. Enables the AI helpers: condensing imported steps and the recipe **Estimate nutrition** button. Without it, those features show a plain message and everything else keeps working. Get a key from [Google AI Studio](https://aistudio.google.com/apikey). Set it on the server only — never commit it or expose it to the browser. |
+| `GEMINI_MODEL` | Optional. Model used for the AI helpers. Defaults to `gemini-3.5-flash-lite`. |
 
-`SUPABASE_SECRET_KEY` and `GEMINI_API_KEY` are not used yet.
+`SUPABASE_SECRET_KEY` is not used yet.
 
 ## Local development
 
