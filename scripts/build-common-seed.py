@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Build supabase/migrations/20261113160000_common_ingredients.sql.
+"""Build supabase/migrations/20261113160200_more_common_ingredients.sql.
 
-A short, friendly list of everyday ingredients. Each friendly name is matched to the
-best USDA SR Legacy row, and that row's macros (per 100 g), density, and portions are
-copied. These rows are marked is_common = true and shown first in search; the full USDA
-catalog stays available behind "Search all foods".
+A friendly list of everyday ingredients. Each friendly name is matched to the best USDA
+SR Legacy row, and that row's macros (per 100 g), density, and portions are copied (a
+few German staples USDA does not carry use typical label macros instead). These rows are
+marked is_common = true and shown first in search; the full USDA catalog stays available
+behind "Search all foods".
+
+The base list (COMMON) already shipped in 20261113160000_common_ingredients.sql. This
+script now emits only the follow-up additions (EXTRA) as a separate, idempotent migration
+so the already-applied base migration is never rewritten.
 """
 import csv
 import sys
@@ -13,7 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 
 SRC = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/usda/FoodData_Central_sr_legacy_food_csv_2018-04")
-OUT = Path(sys.argv[2] if len(sys.argv) > 2 else "supabase/migrations/20261113160000_common_ingredients.sql")
+OUT = Path(sys.argv[2] if len(sys.argv) > 2 else "supabase/migrations/20261113160200_more_common_ingredients.sql")
 NS = uuid.UUID("2b9d6c41-5e0a-4a7e-9f3b-1c7d8e2a6b40")
 
 VOLUME = {"1000": 240, "1001": 15, "1002": 5, "1003": 1000, "1004": 1, "1009": 29.5735, "1118": 15}
@@ -168,6 +173,129 @@ COMMON = [
     ("Raisins", "Baking", ["raisins, dark, seedless"]),
 ]
 
+# Staples common in German supermarkets (English names). These ship as a follow-up
+# migration (see OUT below) so the already-applied base list above is left untouched.
+EXTRA = [
+    # Produce
+    ("Red cabbage", "Produce", ["cabbage, red, raw"]),
+    ("Savoy cabbage", "Produce", ["cabbage, savoy, raw"]),
+    ("Kohlrabi", "Produce", ["kohlrabi, raw"]),
+    ("Brussels sprouts", "Produce", ["brussels sprouts, raw"]),
+    ("Celeriac", "Produce", ["celeriac, raw"]),
+    ("Fennel", "Produce", ["fennel, bulb, raw"]),
+    ("Radish", "Produce", ["radishes, raw"]),
+    ("Chard", "Produce", ["chard, swiss, raw"]),
+    ("Rocket (arugula)", "Produce", ["arugula, raw"]),
+    ("Chicory", "Produce", ["chicory greens, raw"]),
+    ("Shallot", "Produce", ["shallots, raw"]),
+    ("Parsnip", "Produce", ["parsnips, raw"]),
+    ("Turnip", "Produce", ["turnips, raw"]),
+    ("Olives", "Produce", ["olives, ripe, canned"]),
+    ("Sauerkraut", "Produce", ["sauerkraut, canned"]),
+    ("Gherkins", "Produce", ["pickles, cucumber, dill"]),
+    ("Sun-dried tomatoes", "Produce", ["tomatoes, sun-dried"]),
+    ("Capers", "Other", ["capers, canned"]),
+    # Fruit
+    ("Pear", "Produce", ["pears, raw"]),
+    ("Plum", "Produce", ["plums, raw"]),
+    ("Cherry", "Produce", ["cherries, sweet, raw"]),
+    ("Peach", "Produce", ["peaches, yellow, raw"]),
+    ("Nectarine", "Produce", ["nectarines, raw"]),
+    ("Apricot", "Produce", ["apricots, raw"]),
+    ("Kiwi", "Produce", ["kiwifruit, green, raw"]),
+    ("Watermelon", "Produce", ["watermelon, raw"]),
+    ("Melon", "Produce", ["melons, cantaloupe, raw"]),
+    ("Raspberry", "Produce", ["raspberries, raw"]),
+    ("Blackberry", "Produce", ["blackberries, raw"]),
+    ("Rhubarb", "Produce", ["rhubarb, raw"]),
+    ("Redcurrant", "Produce", ["currants, red and white, raw"]),
+    ("Gooseberry", "Produce", ["gooseberries, raw"]),
+    ("Mandarin", "Produce", ["tangerines, (mandarin oranges), raw"]),
+    # Herbs and spices
+    ("Dill", "Spices", ["dill weed, fresh"]),
+    ("Chives", "Spices", ["chives, raw"]),
+    ("Thyme", "Spices", ["thyme, fresh"]),
+    ("Rosemary", "Spices", ["rosemary, fresh"]),
+    ("Sage", "Spices", ["spices, sage, ground"]),
+    ("Nutmeg", "Spices", ["spices, nutmeg, ground"]),
+    ("Caraway", "Spices", ["spices, caraway seed"]),
+    ("Cloves", "Spices", ["spices, cloves, ground"]),
+    ("Cardamom", "Spices", ["spices, cardamom"]),
+    ("Ground ginger", "Spices", ["spices, ginger, ground"]),
+    ("Garlic powder", "Spices", ["spices, garlic powder"]),
+    ("Onion powder", "Spices", ["spices, onion powder"]),
+    # Meat
+    ("Turkey breast", "Meat", ["turkey", "breast", "meat only", "raw"]),
+    ("Frankfurter", "Meat", ["frankfurter", "beef"]),
+    ("Salami", "Meat", ["salami, dry or hard, pork"]),
+    ("Liver sausage", "Meat", ["liverwurst"]),
+    ("Bratwurst", "Meat", ["sausage, pork and beef, fresh, cooked"]),
+    ("Veal", "Meat", ["veal", "loin", "separable lean only, raw"]),
+    # Seafood
+    ("Herring", "Seafood", ["fish, herring, atlantic, raw"]),
+    ("Mackerel", "Seafood", ["fish, mackerel, atlantic, raw"]),
+    ("Trout", "Seafood", ["fish, trout, rainbow, farmed, raw"]),
+    ("Pollock", "Seafood", ["fish, pollock, atlantic, raw"]),
+    ("Smoked salmon", "Seafood", ["fish, salmon, chinook, smoked"]),
+    # Dairy and eggs
+    ("Buttermilk", "Dairy", ["buttermilk, fluid, cultured, lowfat"]),
+    ("Cottage cheese", "Dairy", ["cheese, cottage, creamed, large or small curd"]),
+    ("Quark", "Dairy", {"kcal": 67, "protein": 12.0, "carbs": 4.0, "fat": 0.3}),
+    ("Gouda", "Dairy", ["cheese, gouda"]),
+    ("Emmental", "Dairy", ["cheese, swiss"]),
+    ("Edam", "Dairy", ["cheese, edam"]),
+    ("Camembert", "Dairy", ["cheese, camembert"]),
+    ("Brie", "Dairy", ["cheese, brie"]),
+    ("Ricotta", "Dairy", ["cheese, ricotta, whole milk"]),
+    ("Mascarpone", "Dairy", {"kcal": 429, "protein": 4.6, "carbs": 4.0, "fat": 44.0}),
+    ("Creme fraiche", "Dairy", ["cream, fluid, light whipping"]),
+    ("Condensed milk", "Dairy", ["milk, canned, condensed, sweetened"]),
+    ("Kefir", "Dairy", ["kefir", "lowfat", "plain"]),
+    ("Skyr", "Dairy", ["yogurt, greek, plain, nonfat"]),
+    ("Oat milk", "Other", {"kcal": 46, "protein": 1.0, "carbs": 6.7, "fat": 1.5}),
+    ("Soy milk", "Other", ["soymilk, original and vanilla, unfortified"]),
+    # Grains, bakery and pantry
+    ("Rye bread", "Bakery", ["bread, rye"]),
+    ("Wholemeal bread", "Bakery", ["bread, whole-wheat, commercially prepared"]),
+    ("Bread roll", "Bakery", ["rolls, hard (includes kaiser)"]),
+    ("Pumpernickel", "Bakery", ["bread, pumpernickel"]),
+    ("Pretzel", "Bakery", ["snacks, pretzels, hard, plain"]),
+    ("Crispbread", "Bakery", ["crackers, rye, wafers, plain"]),
+    ("Cornflakes", "Grains", ["cereals ready-to-eat", "corn flakes"]),
+    ("Muesli", "Grains", ["cereals ready-to-eat, granola, homemade"]),
+    ("Egg noodles", "Grains", ["noodles, egg, dry, unenriched"]),
+    ("Semolina", "Grains", ["semolina, unenriched"]),
+    ("Spelt", "Grains", ["spelt, uncooked"]),
+    ("Barley", "Grains", ["barley, pearled, raw"]),
+    ("Bulgur", "Grains", ["bulgur, dry"]),
+    ("Cornmeal (polenta)", "Grains", ["cornmeal, whole-grain, yellow"]),
+    ("Rye flour", "Baking", ["rye flour, medium"]),
+    ("Wholemeal flour", "Baking", ["wheat flour, whole-grain, soft"]),
+    # Legumes
+    ("White beans, tinned", "Legumes", ["beans, white, mature seeds, canned"]),
+    ("Split peas", "Legumes", ["peas", "split", "raw"]),
+    ("Green lentils", "Legumes", ["lentils, raw"]),
+    # Nuts and seeds
+    ("Hazelnuts", "Nuts", ["nuts, hazelnuts or filberts"]),
+    ("Pecans", "Nuts", ["nuts, pecans"]),
+    ("Pistachios", "Nuts", ["nuts, pistachio nuts, raw"]),
+    ("Pine nuts", "Nuts", ["nuts, pine nuts, dried"]),
+    ("Peanuts", "Nuts", ["peanuts, all types, raw"]),
+    ("Sunflower seeds", "Nuts", ["seeds, sunflower seed kernels, dried"]),
+    ("Pumpkin seeds", "Nuts", ["seeds, pumpkin and squash seed kernels, dried"]),
+    ("Chia seeds", "Nuts", ["seeds, chia seeds, dried"]),
+    ("Flaxseed", "Nuts", ["seeds, flaxseed"]),
+    # Oils and condiments
+    ("Rapeseed oil", "Oils", ["oil, canola"]),
+    ("Horseradish", "Other", ["horseradish, prepared"]),
+    ("Jam", "Other", ["jams and preserves"]),
+    ("Pesto", "Other", ["sauce, pesto"]),
+    ("Vegetable stock", "Other", {"kcal": 4, "protein": 0.3, "carbs": 0.6, "fat": 0.1}),
+    # Baking
+    ("Yeast", "Baking", ["leavening agents, yeast, baker", "active dry"]),
+    ("Gelatine", "Baking", ["gelatins, dry powder, unsweetened"]),
+]
+
 
 def sql(value):
     return "null" if value is None else "'" + str(value).replace("'", "''") + "'"
@@ -241,12 +369,21 @@ ingredient_rows = []
 macro_rows = []
 portion_rows = []
 missing = []
-for friendly, aisle, keywords in COMMON:
+for friendly, aisle, spec in EXTRA:
+    iid = str(uuid.uuid5(NS, f"common:{friendly}"))
+    # A dict spec carries label macros for a German staple with no USDA SR Legacy row
+    # (Quark, Mascarpone, oat milk, vegetable stock). No density or portions.
+    if isinstance(spec, dict):
+        ingredient_rows.append(f"({sql(iid)}, {sql(friendly)}, {sql(aisle)}, null, true)")
+        macro_rows.append(
+            f"({sql(iid)}, {num(spec.get('kcal'))}, {num(spec.get('protein'))}, {num(spec.get('carbs'))}, {num(spec.get('fat'))})"
+        )
+        continue
+    keywords = spec
     fdc = best_match(keywords)
     if not fdc:
         missing.append(friendly)
         continue
-    iid = str(uuid.uuid5(NS, f"common:{friendly}"))
     samples = density_samples.get(fdc) or []
     density = sum(samples) / len(samples) if samples else None
     if density and (density < 0.05 or density > 3):
@@ -266,30 +403,34 @@ for friendly, aisle, keywords in COMMON:
         if label in seen:
             continue
         seen.add(label)
-        portion_rows.append(f"({sql(iid)}, null, {sql(label)}, {num(grams)})")
+        # Deterministic id so re-running the migration can't duplicate the portion.
+        pid = str(uuid.uuid5(NS, f"portion:{friendly}:{label}"))
+        portion_rows.append(f"({sql(pid)}, {sql(iid)}, null, {sql(label)}, {num(grams)})")
 
 
-def batches(rows, insert, size=200):
-    return "".join(insert + ",\n".join(rows[i : i + size]) + ";\n" for i in range(0, len(rows), size))
+def batches(rows, insert, suffix, size=200):
+    return "".join(insert + ",\n".join(rows[i : i + size]) + suffix for i in range(0, len(rows), size))
 
 
-names = sorted({friendly for friendly, _, _ in COMMON})
+names = sorted({friendly for friendly, _, _ in EXTRA})
 delete_list = ", ".join(sql(n.lower()) for n in names)
 
 text = f"""-- Generated by scripts/build-common-seed.py from USDA SR Legacy (public domain).
--- {len(ingredient_rows)} everyday ingredients with friendly names, shown first in search.
+-- {len(ingredient_rows)} more everyday ingredients (German-supermarket staples) with
+-- friendly names, shown first in search. Follow-up to 20261113160000_common_ingredients.sql.
+-- Idempotent: safe to apply on top of the base list or on a fresh database.
 -- Do not edit by hand; regenerate the file.
 
 alter table public.ingredients add column if not exists is_common boolean not null default false;
 create index if not exists ingredients_common_idx on public.ingredients (is_common) where is_common;
 
--- A friendly name may equal a global USDA name (e.g. "Tempeh"). Remove the USDA duplicate so
--- the friendly row is the single global entry for that name.
+-- A friendly name may equal a global USDA name. Remove the USDA duplicate so the friendly
+-- row is the single global entry for that name.
 delete from public.ingredients where household_id is null and lower(name) in ({delete_list});
 
-{batches(ingredient_rows, "insert into public.ingredients (id, name, aisle, density_g_per_ml, is_common) values\n")}
-{batches(macro_rows, "insert into public.ingredient_macros (ingredient_id, kcal, protein_g, carbs_g, fat_g) values\n")}
-{batches(portion_rows, "insert into public.ingredient_portions (ingredient_id, unit_id, label, grams) values\n")}
+{batches(ingredient_rows, "insert into public.ingredients (id, name, aisle, density_g_per_ml, is_common) values\n", "\non conflict (id) do nothing;\n")}
+{batches(macro_rows, "insert into public.ingredient_macros (ingredient_id, kcal, protein_g, carbs_g, fat_g) values\n", "\non conflict (ingredient_id) do nothing;\n")}
+{batches(portion_rows, "insert into public.ingredient_portions (id, ingredient_id, unit_id, label, grams) values\n", "\non conflict (id) do nothing;\n")}
 """
 OUT.write_text(text)
 print(f"common {len(ingredient_rows)} macros {len(macro_rows)} portions {len(portion_rows)}")
