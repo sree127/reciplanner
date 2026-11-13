@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { formatScaled } from "@/lib/kitchen";
 import type { RecipeDetail } from "@/lib/recipes";
+import { AddToList } from "@/components/add-to-list";
 
-export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
+export function RecipeView({
+  recipe,
+  lists,
+}: {
+  recipe: RecipeDetail;
+  lists: { id: string; name: string; isDefault: boolean }[];
+}) {
   const [servings, setServings] = useState(recipe.servings);
   const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
   const scaledYield = recipe.yieldQty == null ? null : formatScaled(recipe.yieldQty, null, null, recipe.yieldLabel, factor);
@@ -99,6 +106,8 @@ export function RecipeView({ recipe }: { recipe: RecipeDetail }) {
           </div>
         ))}
       </section>
+
+      <AddToList recipeId={recipe.id} servings={servings} lists={lists} />
 
       {recipe.steps.length > 0 && (
         <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
