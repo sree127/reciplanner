@@ -33,6 +33,8 @@ export type SectionLine = { key: string; title: string };
 export type RecipeMacros = {
   perServing: { kcal: number; protein: number; carbs: number; fat: number };
   total: { kcal: number; protein: number; carbs: number; fat: number };
+  /** "web" when taken from the recipe source, "estimate" when computed from ingredients. */
+  source: "web" | "estimate";
   countedIngredients: number;
   totalIngredients: number;
   missing: string[];
@@ -179,19 +181,46 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
   }
 
   const servings = num(recipe.servings) ?? 1;
-  const perServing = {
-    kcal: total.kcal / servings,
-    protein: total.protein / servings,
-    carbs: total.carbs / servings,
-    fat: total.fat / servings,
-  };
-  const macros: RecipeMacros = {
-    total,
-    perServing,
-    countedIngredients: counted,
-    totalIngredients: ingredientLines.filter((l) => !l.optional).length,
-    missing,
-  };
+  const webKcal = num(recipe.nutrition_kcal);
+  const totalIngredients = ingredientLines.filter((l) => !l.optional).length;
+
+  let macros: RecipeMacros;
+  if (recipe.nutrition_source === "web" && webKcal != null) {
+    // The recipe source published nutrition (per serving); trust it over the estimate.
+    const perServing = {
+      kcal: webKcal,
+      protein: num(recipe.nutrition_protein_g) ?? 0,
+      carbs: num(recipe.nutrition_carbs_g) ?? 0,
+      fat: num(recipe.nutrition_fat_g) ?? 0,
+    };
+    macros = {
+      perServing,
+      total: {
+        kcal: perServing.kcal * servings,
+        protein: perServing.protein * servings,
+        carbs: perServing.carbs * servings,
+        fat: perServing.fat * servings,
+      },
+      source: "web",
+      countedIngredients: counted,
+      totalIngredients,
+      missing: [],
+    };
+  } else {
+    macros = {
+      total,
+      perServing: {
+        kcal: total.kcal / servings,
+        protein: total.protein / servings,
+        carbs: total.carbs / servings,
+        fat: total.fat / servings,
+      },
+      source: "estimate",
+      countedIngredients: counted,
+      totalIngredients,
+      missing,
+    };
+  }
 
   return {
     id: recipe.id,

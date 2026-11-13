@@ -335,14 +335,14 @@ isOneToOne: false
                   ]
                 },"recipes": {
                   Row: {
-                    "cook_min": number | null,"created_at": string,"created_by": string | null,"description": string | null,"household_id": string,"id": string,"is_favorite": boolean,"notes": string | null,"photo_url": string | null,"prep_min": number | null,"servings": number | null,"source_author": string | null,"source_type": Database["public"]['Enums']["recipe_source_type"],"source_url": string | null,"steps_style": Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min": number | null,"updated_at": string,"updated_by": string | null,"visibility": Database["public"]['Enums']["recipe_visibility"],"yield_qty": number | null,"yield_unit_label": string | null
+                    "cook_min": number | null,"created_at": string,"created_by": string | null,"description": string | null,"household_id": string,"id": string,"is_favorite": boolean,"notes": string | null,"nutrition_carbs_g": number | null,"nutrition_fat_g": number | null,"nutrition_kcal": number | null,"nutrition_protein_g": number | null,"nutrition_source": string | null,"photo_url": string | null,"prep_min": number | null,"servings": number | null,"source_author": string | null,"source_type": Database["public"]['Enums']["recipe_source_type"],"source_url": string | null,"steps_style": Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min": number | null,"updated_at": string,"updated_by": string | null,"visibility": Database["public"]['Enums']["recipe_visibility"],"yield_qty": number | null,"yield_unit_label": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id": string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
+                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id": string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"nutrition_carbs_g"?: number | null,"nutrition_fat_g"?: number | null,"nutrition_kcal"?: number | null,"nutrition_protein_g"?: number | null,"nutrition_source"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title": string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
                   }
                   Update: {
-                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id"?: string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title"?: string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
+                    "cook_min"?: number | null,"created_at"?: string,"created_by"?: string | null,"description"?: string | null,"household_id"?: string,"id"?: string,"is_favorite"?: boolean,"notes"?: string | null,"nutrition_carbs_g"?: number | null,"nutrition_fat_g"?: number | null,"nutrition_kcal"?: number | null,"nutrition_protein_g"?: number | null,"nutrition_source"?: string | null,"photo_url"?: string | null,"prep_min"?: number | null,"servings"?: number | null,"source_author"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"source_url"?: string | null,"steps_style"?: Database["public"]['Enums']["recipe_steps_style"],"title"?: string,"total_min"?: number | null,"updated_at"?: string,"updated_by"?: string | null,"visibility"?: Database["public"]['Enums']["recipe_visibility"],"yield_qty"?: number | null,"yield_unit_label"?: string | null
                   }
                   Relationships: [
                     {
@@ -445,6 +445,11 @@ isOneToOne: false
 "id": string,
 "is_favorite": boolean,
 "notes": string | null,
+"nutrition_carbs_g": number | null,
+"nutrition_fat_g": number | null,
+"nutrition_kcal": number | null,
+"nutrition_protein_g": number | null,
+"nutrition_source": string | null,
 "photo_url": string | null,
 "prep_min": number | null,
 "servings": number | null,

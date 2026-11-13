@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { condenseSteps, parseIngredientLine, parseIsoDuration, parseRecipeHtml } from "../src/lib/import.ts";
+import { condenseSteps, parseIngredientLine, parseIsoDuration, parseNutrition, parseRecipeHtml } from "../src/lib/import.ts";
 
 describe("ingredient line parsing", () => {
   it("splits quantity, unit, name and note", () => {
@@ -111,5 +111,25 @@ describe("JSON-LD recipe extraction", () => {
 
   it("returns null when a page has no recipe data", () => {
     assert.equal(parseRecipeHtml("<html><body>No recipe here</body></html>", "https://x.test"), null);
+  });
+});
+
+describe("nutrition parsing", () => {
+  it("reads per-serving nutrition from NutritionInformation", () => {
+    assert.deepEqual(
+      parseNutrition({
+        "@type": "NutritionInformation",
+        calories: "210 kcal",
+        proteinContent: "12 g",
+        carbohydrateContent: "30g",
+        fatContent: "4 g",
+      }),
+      { kcal: 210, protein: 12, carbs: 30, fat: 4 },
+    );
+  });
+
+  it("returns null without calories, and tolerates missing macros", () => {
+    assert.equal(parseNutrition({ proteinContent: "5 g" }), null);
+    assert.deepEqual(parseNutrition({ calories: "180" }), { kcal: 180, protein: null, carbs: null, fat: null });
   });
 });

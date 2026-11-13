@@ -127,6 +127,21 @@ export async function startImport(formData: FormData): Promise<void> {
   });
   if (error || !id) toImport(error?.message ?? "Could not save the imported recipe.");
 
+  // If the page published its own nutrition (per serving), keep it — it's more reliable
+  // than estimating from ingredients, especially when units don't convert to grams.
+  if (result.nutrition) {
+    await supabase
+      .from("recipes")
+      .update({
+        nutrition_source: "web",
+        nutrition_kcal: result.nutrition.kcal,
+        nutrition_protein_g: result.nutrition.protein,
+        nutrition_carbs_g: result.nutrition.carbs,
+        nutrition_fat_g: result.nutrition.fat,
+      })
+      .eq("id", id);
+  }
+
   revalidatePath("/");
   redirect(`/recipes/${id}?imported=${created}`);
 }

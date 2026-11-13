@@ -31,4 +31,9 @@ test("import a recipe from a link in one step and save it", async ({ browser }) 
   const source = owner.getByTestId("recipe-source");
   await expect(source).toContainText("127.0.0.1");
   await expect(source).toContainText("Nonna Rosa");
+
+  // Nutrition published by the page is kept (per serving), not just estimated from ingredients.
+  const nutrition = owner.getByTestId("macros");
+  await expect(nutrition).toContainText("210");
+  await expect(nutrition).toContainText("From the recipe source");
 });
