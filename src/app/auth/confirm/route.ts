@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   url.search = "";
   if (failed) {
     url.pathname = "/login";
-    url.searchParams.set("error", "That sign-in link has expired or was already used. Request a new code.");
+    url.searchParams.set("error", "That sign-in link didn't work. Open it in the same browser where you asked for it, or request a new one.");
   } else {
     const target = new URL(next, request.nextUrl.origin);
     url.pathname = target.pathname;

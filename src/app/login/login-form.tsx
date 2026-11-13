@@ -32,8 +32,8 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-stone-600">
-        We sent a code to <strong className="text-stone-900">{sent.email}</strong>. Type it below, or
-        tap the link in the email.
+        We emailed <strong className="text-stone-900">{sent.email}</strong>. Tap the sign-in link on
+        this phone, in this browser. If the email has a code, type it here instead.
       </p>
       <form action={verify} className="space-y-4">
         <input type="hidden" name="email" value={sent.email} />

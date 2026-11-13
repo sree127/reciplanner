@@ -23,8 +23,8 @@ Use the CLI rather than pasting SQL into the dashboard: the CLI records which mi
 In Supabase → Authentication:
 
 1. **URL Configuration:** set Site URL to your Vercel URL (e.g. `https://reciplanner.vercel.app`). Add `https://reciplanner.vercel.app/**` to Redirect URLs.
-2. **Emails → Templates:** paste `supabase/templates/magic-link.html` into "Magic link" and `supabase/templates/confirmation.html` into "Confirm signup". These emails contain a 6-digit code and a link that works in any browser (phone mail apps often open links in a different browser).
-3. **Email delivery:** Supabase's built-in email only sends to members of your Supabase organization, a few emails per hour. Either invite your partner to the organization (Organization → Team), or add custom SMTP under Authentication → Emails → SMTP Settings.
+2. **Email delivery:** Supabase's built-in email only sends to members of your Supabase organization, a few emails per hour. Either invite your partner to the organization (Organization → Team), or add custom SMTP under Authentication → Emails → SMTP Settings.
+3. **Optional, needs custom SMTP:** under Emails → Templates, paste `supabase/templates/magic-link.html` into "Magic link" and `supabase/templates/confirmation.html` into "Confirm signup". These add a 6-digit code and a link that works in any browser. With Supabase's default emails, the link must be opened in the same browser where sign-in was requested.
 
 ### 3. Deploy to Vercel (about 5 minutes)
 
