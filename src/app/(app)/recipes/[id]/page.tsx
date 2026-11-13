@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RecipeView } from "@/components/recipe-view";
 import { getRecipe } from "@/lib/recipes";
+import { getListsForPicker } from "@/lib/shopping";
 import { deleteRecipe, toggleFavorite } from "../actions";
 
 function sourceHost(url: string): string {
@@ -16,7 +17,7 @@ export default async function RecipePage({ params, searchParams }: PageProps<"/r
   const query = await searchParams;
   const imported = typeof query.imported === "string";
   const newCount = imported ? Number(query.imported) || 0 : 0;
-  const recipe = await getRecipe(id);
+  const [recipe, lists] = await Promise.all([getRecipe(id), getListsForPicker()]);
 
   return (
     <>
@@ -74,7 +75,7 @@ export default async function RecipePage({ params, searchParams }: PageProps<"/r
           ))}
         </div>
       )}
-      <RecipeView recipe={recipe} />
+      <RecipeView recipe={recipe} lists={lists} />
       {recipe.notes && (
         <section className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
           <h2 className="text-lg font-semibold text-stone-900">Notes</h2>

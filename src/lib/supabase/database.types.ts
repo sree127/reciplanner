@@ -353,6 +353,84 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"shopping_list_item_sources": {
+                  Row: {
+                    "id": string,"item_id": string,"recipe_id": string | null,"recipe_title": string | null,"servings_used": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"item_id": string,"recipe_id"?: string | null,"recipe_title"?: string | null,"servings_used"?: number | null
+                  }
+                  Update: {
+                    "id"?: string,"item_id"?: string,"recipe_id"?: string | null,"recipe_title"?: string | null,"servings_used"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_list_item_sources_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "shopping_list_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_list_item_sources_recipe_id_fkey"
+      columns: ["recipe_id"]
+isOneToOne: false
+      referencedRelation: "recipes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shopping_list_items": {
+                  Row: {
+                    "aisle": string | null,"checked": boolean,"checked_at": string | null,"checked_by": string | null,"created_at": string,"grams": number | null,"id": string,"ingredient_id": string | null,"list_id": string,"name": string,"position": number,"qty_max": number | null,"qty_min": number | null,"unit_id": string | null,"unit_label": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aisle"?: string | null,"checked"?: boolean,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"grams"?: number | null,"id"?: string,"ingredient_id"?: string | null,"list_id": string,"name": string,"position"?: number,"qty_max"?: number | null,"qty_min"?: number | null,"unit_id"?: string | null,"unit_label"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "aisle"?: string | null,"checked"?: boolean,"checked_at"?: string | null,"checked_by"?: string | null,"created_at"?: string,"grams"?: number | null,"id"?: string,"ingredient_id"?: string | null,"list_id"?: string,"name"?: string,"position"?: number,"qty_max"?: number | null,"qty_min"?: number | null,"unit_id"?: string | null,"unit_label"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_list_items_ingredient_id_fkey"
+      columns: ["ingredient_id"]
+isOneToOne: false
+      referencedRelation: "ingredients"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_list_items_list_id_fkey"
+      columns: ["list_id"]
+isOneToOne: false
+      referencedRelation: "shopping_lists"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shopping_list_items_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "units"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shopping_lists": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"household_id": string,"id": string,"is_default": boolean,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"household_id": string,"id"?: string,"is_default"?: boolean,"name": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"household_id"?: string,"id"?: string,"is_default"?: boolean,"name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shopping_lists_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tags": {
                   Row: {
                     "created_at": string,"household_id": string,"id": string,"name": string
@@ -396,6 +474,15 @@ isOneToOne: false
             "accept_invite":
 { Args: { "p_leave_current"?: boolean,"p_token": string }; Returns: string
                            },
+"add_manual_item":
+{ Args: { "p_aisle"?: string,"p_list_id": string,"p_name": string }; Returns: string
+                           },
+"add_recipe_to_list":
+{ Args: { "p_list_id": string,"p_recipe_id": string,"p_servings": number }; Returns: number
+                           },
+"clear_checked_items":
+{ Args: { "p_list_id": string }; Returns: number
+                           },
 "create_category":
 { Args: { "p_name": string }; Returns: string
                            },
@@ -408,6 +495,9 @@ isOneToOne: false
 "create_invite":
 { Args: { "p_email": string }; Returns: string
                            },
+"create_shopping_list":
+{ Args: { "p_name": string }; Returns: string
+                           },
 "current_user_email":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -418,6 +508,9 @@ isOneToOne: false
                            },
 "is_household_member":
 { Args: { "p_household_id": string }; Returns: boolean
+                           },
+"is_shopping_list_member":
+{ Args: { "p_list_id": string }; Returns: boolean
                            },
 "leave_household":
 { Args: Record<PropertyKey, never>; Returns: undefined
@@ -471,6 +564,9 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"set_default_list":
+{ Args: { "p_list_id": string }; Returns: undefined
+                           },
 "shares_household_with":
 { Args: { "p_user_id": string }; Returns: boolean
                            }
