@@ -29,6 +29,9 @@ export default defineConfig({
         SUPABASE_PUBLISHABLE_KEY: local.PUBLISHABLE_KEY,
         // Lets the website-import test fetch its local fixture page (blocked otherwise).
         ALLOW_LOCAL_IMPORT: "1",
+        // Keep import deterministic in tests: exercise the structured-data path, not the
+        // optional AI rephrasing. (The AI pass is an enhancement, tested by hand with a key.)
+        GEMINI_API_KEY: "",
       },
     },
     {

@@ -11,12 +11,23 @@ function sourceHost(url: string): string {
   }
 }
 
-export default async function RecipePage({ params }: PageProps<"/recipes/[id]">) {
+export default async function RecipePage({ params, searchParams }: PageProps<"/recipes/[id]">) {
   const { id } = await params;
+  const query = await searchParams;
+  const imported = typeof query.imported === "string";
+  const newCount = imported ? Number(query.imported) || 0 : 0;
   const recipe = await getRecipe(id);
 
   return (
     <>
+      {imported && (
+        <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 ring-1 ring-emerald-200" data-testid="imported-note">
+          Imported and saved.{" "}
+          {newCount > 0
+            ? `${newCount} new ${newCount === 1 ? "ingredient was" : "ingredients were"} added to your catalog — tap Edit to set amounts or nutrition.`
+            : "Check the amounts below and edit anything that looks off."}
+        </p>
+      )}
       {recipe.photoUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={recipe.photoUrl} alt="" className="h-48 w-full rounded-2xl object-cover" />

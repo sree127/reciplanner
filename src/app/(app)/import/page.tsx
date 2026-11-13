@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ErrorText } from "@/components/ui";
 import { ImportForm } from "./import-form";
 
 export const metadata: Metadata = { title: "Import a recipe" };
 
-export default function ImportPage() {
+export default async function ImportPage({ searchParams }: PageProps<"/import">) {
+  const params = await searchParams;
+  const error = typeof params.error === "string" ? params.error : null;
+
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-stone-900">Import from a link</h1>
         <p className="mt-1 text-sm text-stone-600">
-          Paste a recipe link. We read the ingredients and shorten the method to a few steps, then
-          you check it over before saving. It links back to the original page.
+          Paste a recipe link and we&apos;ll save it for you. We read the recipe card most food
+          sites include at the end of the page — the ingredients and method — convert the amounts to
+          metric, and shorten the steps. The saved recipe links back to the original page.
         </p>
       </div>
+
+      {error && <ErrorText message={error} />}
 
       <ImportForm />
 
