@@ -30,6 +30,14 @@ export type StepLine = { key: string; sectionId: string | null; text: string; ti
 
 export type SectionLine = { key: string; title: string };
 
+export type RecipeMacros = {
+  perServing: { kcal: number; protein: number; carbs: number; fat: number };
+  total: { kcal: number; protein: number; carbs: number; fat: number };
+  countedIngredients: number;
+  totalIngredients: number;
+  missing: string[];
+};
+
 export type RecipeDetail = {
   id: string;
   title: string;
@@ -49,6 +57,7 @@ export type RecipeDetail = {
   sections: SectionLine[];
   ingredients: IngredientLine[];
   steps: StepLine[];
+  macros: RecipeMacros;
 };
 
 function num(value: unknown): number | null {
@@ -132,6 +141,56 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     if (result.error) throw result.error;
   }
 
+  const ingredientLines = ingredients.data ?? [];
+  const macroIds = [...new Set(ingredientLines.map((l) => l.ingredient_id))];
+  const macroByIngredient = new Map<
+    string,
+    { kcal: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null }
+  >();
+  if (macroIds.length) {
+    const { data: macroRows, error: macroError } = await supabase
+      .from("ingredient_macros")
+      .select("ingredient_id, kcal, protein_g, carbs_g, fat_g")
+      .in("ingredient_id", macroIds);
+    if (macroError) throw macroError;
+    for (const row of macroRows ?? []) macroByIngredient.set(row.ingredient_id, row);
+  }
+
+  const total = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+  const missing: string[] = [];
+  let counted = 0;
+  for (const line of ingredientLines) {
+    if (line.optional) continue;
+    const name = line.ingredients?.name ?? "Ingredient";
+    const grams = num(line.grams);
+    const macro = macroByIngredient.get(line.ingredient_id);
+    if (grams == null || grams <= 0 || !macro || macro.kcal == null) {
+      if (!missing.includes(name)) missing.push(name);
+      continue;
+    }
+    const factor = grams / 100;
+    total.kcal += (macro.kcal ?? 0) * factor;
+    total.protein += (macro.protein_g ?? 0) * factor;
+    total.carbs += (macro.carbs_g ?? 0) * factor;
+    total.fat += (macro.fat_g ?? 0) * factor;
+    counted += 1;
+  }
+
+  const servings = num(recipe.servings) ?? 1;
+  const perServing = {
+    kcal: total.kcal / servings,
+    protein: total.protein / servings,
+    carbs: total.carbs / servings,
+    fat: total.fat / servings,
+  };
+  const macros: RecipeMacros = {
+    total,
+    perServing,
+    countedIngredients: counted,
+    totalIngredients: ingredientLines.filter((l) => !l.optional).length,
+    missing,
+  };
+
   return {
     id: recipe.id,
     title: recipe.title,
@@ -168,5 +227,6 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
       text: s.text,
       timerSec: s.timer_sec,
     })),
+    macros,
   };
 }

@@ -13,9 +13,9 @@ export type IngredientHit = {
   portions: { label: string | null; grams: number; unitId: string | null }[];
 };
 
-export async function searchIngredients(query: string): Promise<IngredientHit[]> {
+export async function searchIngredients(query: string, all = false): Promise<IngredientHit[]> {
   const { supabase } = await requireUser();
-  const { data, error } = await supabase.rpc("search_ingredients", { p_query: query });
+  const { data, error } = await supabase.rpc("search_ingredients", { p_query: query, p_all: all });
   if (error || !data) return [];
   return data.map((row) => ({
     id: row.id,

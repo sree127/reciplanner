@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Json } from "@/lib/supabase/database.types";
 import { UNITS, convertQuantity } from "@/lib/kitchen";
 import { createCategory, createIngredient, saveRecipe, searchIngredients, type IngredientHit } from "@/app/(app)/recipes/actions";
@@ -73,6 +73,9 @@ export function RecipeEditor({
   const [restored, setRestored] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [hits, setHits] = useState<IngredientHit[]>([]);
+  const [searchedAll, setSearchedAll] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const searchSeq = useRef(0);
   const [macros, setMacros] = useState({ kcal: "", protein: "", carbs: "", fat: "" });
   const [newCategory, setNewCategory] = useState("");
   const [tag, setTag] = useState("");
@@ -115,17 +118,32 @@ export function RecipeEditor({
     });
   }
 
+  async function runSearch(value: string, all: boolean) {
+    const term = value.trim();
+    const seq = ++searchSeq.current;
+    if (term.length < 2) {
+      setHits([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const results = await searchIngredients(term, all);
+    // Only the latest search may update the list, so a slow earlier request can't overwrite it.
+    if (seq !== searchSeq.current) return;
+    setHits(results);
+    setSearchedAll(all);
+    setSearching(false);
+  }
+
   async function onIngredientInput(key: string, value: string) {
     updateLine(key, { ingredientName: value, ingredientId: null, density: null, portions: [] });
     setActive(key);
-    if (value.trim().length < 2) {
-      setHits([]);
-      return;
-    }
-    setHits(await searchIngredients(value));
+    setSearchedAll(false);
+    await runSearch(value, false);
   }
 
   function pick(key: string, hit: IngredientHit) {
+    searchSeq.current += 1;
     updateLine(key, {
       ingredientId: hit.id,
       ingredientName: hit.name,
@@ -133,6 +151,7 @@ export function RecipeEditor({
       portions: hit.portions,
     });
     setHits([]);
+    setSearchedAll(false);
     setActive(null);
   }
 
@@ -413,7 +432,7 @@ export function RecipeEditor({
                     onChange={(e) => void onIngredientInput(line.key, e.target.value)}
                     onFocus={() => setActive(line.key)}
                   />
-                  {active === line.key && (hits.length > 0 || showAdd) && (
+                  {active === line.key && (hits.length > 0 || showAdd || searching) && (
                     <ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-xl bg-white py-1 shadow-lg ring-1 ring-stone-200" role="listbox">
                       {hits.map((hit) => (
                         <li key={hit.id}>
@@ -423,6 +442,18 @@ export function RecipeEditor({
                           </button>
                         </li>
                       ))}
+                      {searching && <li className="px-3 py-2 text-sm text-stone-500">Searching…</li>}
+                      {!searching && !searchedAll && activeLine?.type === "ingredient" && activeLine.ingredientName.trim().length >= 2 && (
+                        <li className="border-t border-stone-100">
+                          <button
+                            type="button"
+                            className="block w-full px-3 py-2 text-left text-sm font-semibold text-orange-700"
+                            onClick={() => void runSearch(activeLine.ingredientName, true)}
+                          >
+                            {hits.length ? "Search all foods" : "No everyday match — search all foods"}
+                          </button>
+                        </li>
+                      )}
                       {showAdd && activeLine?.type === "ingredient" && (
                         <li className="space-y-2 border-t border-stone-100 px-3 py-2">
                           <p className="text-sm text-stone-700">No exact match. Add “{activeLine.ingredientName.trim()}” for your household.</p>
