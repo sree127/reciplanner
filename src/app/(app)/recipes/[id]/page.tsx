@@ -3,6 +3,14 @@ import { RecipeView } from "@/components/recipe-view";
 import { getRecipe } from "@/lib/recipes";
 import { deleteRecipe, toggleFavorite } from "../actions";
 
+function sourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export default async function RecipePage({ params }: PageProps<"/recipes/[id]">) {
   const { id } = await params;
   const recipe = await getRecipe(id);
@@ -27,6 +35,15 @@ export default async function RecipePage({ params }: PageProps<"/recipes/[id]">)
         </form>
       </div>
       {recipe.description && <p className="text-stone-700">{recipe.description}</p>}
+      {recipe.sourceUrl && (
+        <p className="text-sm text-stone-600" data-testid="recipe-source">
+          From{" "}
+          <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="font-semibold text-orange-700 underline">
+            {sourceHost(recipe.sourceUrl)}
+          </a>
+          {recipe.sourceAuthor ? ` · ${recipe.sourceAuthor}` : ""}
+        </p>
+      )}
       <p className="text-sm text-stone-600">
         {[recipe.prepMin != null && `Prep ${recipe.prepMin} min`, recipe.cookMin != null && `Cook ${recipe.cookMin} min`, recipe.totalMin != null && `${recipe.totalMin} min total`]
           .filter(Boolean)

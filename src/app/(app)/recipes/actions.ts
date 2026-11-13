@@ -66,6 +66,10 @@ export async function saveRecipe(payload: {
   category_ids: string[];
   tags: string[];
   lines: Json[];
+  source_url?: string;
+  source_type?: string;
+  source_author?: string;
+  steps_style?: string;
 }): Promise<{ error: string }> {
   const { supabase } = await requireUser();
   const { data, error } = await supabase.rpc("save_recipe", {
@@ -83,6 +87,10 @@ export async function saveRecipe(payload: {
       category_ids: payload.category_ids,
       tags: payload.tags,
       lines: payload.lines,
+      source_url: payload.source_url ?? "",
+      source_type: payload.source_type ?? "",
+      source_author: payload.source_author ?? "",
+      steps_style: payload.steps_style ?? "",
     },
   });
   if (error) return { error: error.message };

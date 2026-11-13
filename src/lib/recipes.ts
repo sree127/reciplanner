@@ -52,6 +52,8 @@ export type RecipeDetail = {
   photoUrl: string | null;
   favorite: boolean;
   author: string | null;
+  sourceUrl: string | null;
+  sourceAuthor: string | null;
   categories: { id: string; name: string }[];
   tags: string[];
   sections: SectionLine[];
@@ -205,6 +207,8 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     photoUrl: recipe.photo_url,
     favorite: recipe.is_favorite,
     author: author.data?.name || author.data?.email?.split("@")[0] || null,
+    sourceUrl: recipe.source_url,
+    sourceAuthor: recipe.source_author,
     categories: (categories.data ?? []).flatMap((c) => (c.categories ? [c.categories] : [])),
     tags: (tags.data ?? []).flatMap((t) => (t.tags?.name ? [t.tags.name] : [])),
     sections: (sections.data ?? []).map((s) => ({ key: s.id, title: s.title })),

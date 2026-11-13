@@ -97,6 +97,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"import_jobs": {
+                  Row: {
+                    "created_at": string,"created_by": string,"error": string | null,"household_id": string,"id": string,"parsed_json": Json | null,"raw_text": string | null,"source_type": Database["public"]['Enums']["recipe_source_type"],"status": string,"url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"error"?: string | null,"household_id": string,"id"?: string,"parsed_json"?: Json | null,"raw_text"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"status"?: string,"url": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"error"?: string | null,"household_id"?: string,"id"?: string,"parsed_json"?: Json | null,"raw_text"?: string | null,"source_type"?: Database["public"]['Enums']["recipe_source_type"],"status"?: string,"url"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_jobs_household_id_fkey"
+      columns: ["household_id"]
+isOneToOne: false
+      referencedRelation: "households"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"ingredient_macros": {
                   Row: {
                     "carbs_g": number | null,"fat_g": number | null,"ingredient_id": string,"kcal": number | null,"protein_g": number | null

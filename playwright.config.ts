@@ -18,14 +18,25 @@ export default defineConfig({
     browserName: "chromium",
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: "npm run build && npm run start -- -p 3000",
-    url: "http://localhost:3000/login",
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-    env: {
-      SUPABASE_URL: local.API_URL,
-      SUPABASE_PUBLISHABLE_KEY: local.PUBLISHABLE_KEY,
+  webServer: [
+    {
+      command: "npm run build && npm run start -- -p 3000",
+      url: "http://localhost:3000/login",
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      env: {
+        SUPABASE_URL: local.API_URL,
+        SUPABASE_PUBLISHABLE_KEY: local.PUBLISHABLE_KEY,
+        // Lets the website-import test fetch its local fixture page (blocked otherwise).
+        ALLOW_LOCAL_IMPORT: "1",
+      },
     },
-  },
+    {
+      // Serves tests/fixtures as recipe pages for the website-import test.
+      command: "python3 -m http.server 8787 --bind 127.0.0.1 --directory tests/fixtures",
+      url: "http://127.0.0.1:8787/soup.html",
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+    },
+  ],
 });
