@@ -241,11 +241,15 @@ begin
 end;
 $$;
 
--- Add every ingredient of a recipe to a list, scaled to p_servings, merging a line into an
--- existing unchecked item of the same ingredient and unit (200 g + 150 g flour = 350 g flour).
--- Returns the number of recipe lines applied.
-create function public.add_recipe_to_list(p_list_id uuid, p_recipe_id uuid, p_servings numeric)
-returns integer
+-- Add one recipe ingredient to a list, scaled to p_servings, merging it into an existing
+-- unchecked item of the same ingredient and unit (200 g + 150 g flour = 350 g flour).
+-- Returns the item's display name, for a confirmation message.
+create function public.add_ingredient_to_list(
+  p_list_id uuid,
+  p_recipe_ingredient_id uuid,
+  p_servings numeric
+)
+returns text
 language plpgsql
 security definer
 set search_path = ''
@@ -253,23 +257,31 @@ as $$
 declare
   v_household uuid;
   v_recipe public.recipes%rowtype;
-  v_factor numeric;
   v_line record;
+  v_factor numeric;
   v_existing uuid;
   v_item uuid;
   v_pos int;
   v_qty_min numeric;
   v_qty_max numeric;
   v_grams numeric;
-  v_aisle text;
-  v_name text;
-  v_applied int := 0;
 begin
   select household_id into v_household from public.shopping_lists where id = p_list_id;
   if v_household is null or not public.is_household_member(v_household) then
     raise exception 'List not found' using errcode = 'P0001';
   end if;
-  select * into v_recipe from public.recipes where id = p_recipe_id and household_id = v_household;
+
+  select ri.ingredient_id, ri.qty_min, ri.qty_max, ri.unit_id, ri.unit_label, ri.grams,
+         ri.recipe_id, i.name as ing_name, i.aisle as ing_aisle
+  into v_line
+  from public.recipe_ingredients ri
+  join public.ingredients i on i.id = ri.ingredient_id
+  where ri.id = p_recipe_ingredient_id;
+  if v_line.ingredient_id is null then
+    raise exception 'Ingredient not found' using errcode = 'P0001';
+  end if;
+
+  select * into v_recipe from public.recipes where id = v_line.recipe_id and household_id = v_household;
   if v_recipe.id is null then
     raise exception 'Recipe not found' using errcode = 'P0001';
   end if;
@@ -279,71 +291,51 @@ begin
     else p_servings / v_recipe.servings
   end;
 
-  select coalesce(max(position), 0) into v_pos from public.shopping_list_items where list_id = p_list_id;
+  v_qty_min := case when v_line.qty_min is null then null else v_line.qty_min * v_factor end;
+  v_qty_max := case when v_line.qty_max is null then null else v_line.qty_max * v_factor end;
+  v_grams := case when v_line.grams is null then null else v_line.grams * v_factor end;
 
-  for v_line in
-    select ri.ingredient_id, ri.qty_min, ri.qty_max, ri.unit_id, ri.unit_label, ri.grams,
-           i.name as ing_name, i.aisle as ing_aisle
-    from public.recipe_ingredients ri
-    join public.ingredients i on i.id = ri.ingredient_id
-    where ri.recipe_id = p_recipe_id
-    order by ri.position
-  loop
-    -- Skip "to taste" lines with no measurable quantity.
-    if v_line.unit_label = 'to taste' and v_line.qty_min is null then
-      continue;
-    end if;
+  -- Merge into an existing unchecked line for the same ingredient and unit, if the amounts
+  -- are additive (both have a numeric quantity in the same unit).
+  v_existing := null;
+  if v_qty_min is not null then
+    select id into v_existing
+    from public.shopping_list_items
+    where list_id = p_list_id
+      and not checked
+      and ingredient_id is not distinct from v_line.ingredient_id
+      and unit_id is not distinct from v_line.unit_id
+      and unit_label is not distinct from v_line.unit_label
+      and qty_min is not null
+    order by position
+    limit 1;
+  end if;
 
-    v_qty_min := case when v_line.qty_min is null then null else v_line.qty_min * v_factor end;
-    v_qty_max := case when v_line.qty_max is null then null else v_line.qty_max * v_factor end;
-    v_grams := case when v_line.grams is null then null else v_line.grams * v_factor end;
-    v_aisle := v_line.ing_aisle;
-    v_name := v_line.ing_name;
+  if v_existing is not null then
+    update public.shopping_list_items set
+      qty_min = qty_min + v_qty_min,
+      qty_max = case
+        when qty_max is null and v_qty_max is null then null
+        else coalesce(qty_max, qty_min) + coalesce(v_qty_max, v_qty_min)
+      end,
+      grams = case when grams is not null and v_grams is not null then grams + v_grams else grams end
+    where id = v_existing
+    returning id into v_item;
+  else
+    select coalesce(max(position), 0) + 1 into v_pos from public.shopping_list_items where list_id = p_list_id;
+    insert into public.shopping_list_items (
+      list_id, ingredient_id, name, aisle, qty_min, qty_max, unit_id, unit_label, grams, position
+    ) values (
+      p_list_id, v_line.ingredient_id, v_line.ing_name, v_line.ing_aisle, v_qty_min, v_qty_max,
+      v_line.unit_id, v_line.unit_label, v_grams, v_pos
+    )
+    returning id into v_item;
+  end if;
 
-    -- Merge into an existing unchecked line for the same ingredient and unit, if the amounts
-    -- are additive (both have a numeric quantity in the same unit).
-    v_existing := null;
-    if v_qty_min is not null then
-      select id into v_existing
-      from public.shopping_list_items
-      where list_id = p_list_id
-        and not checked
-        and ingredient_id is not distinct from v_line.ingredient_id
-        and unit_id is not distinct from v_line.unit_id
-        and unit_label is not distinct from v_line.unit_label
-        and qty_min is not null
-      order by position
-      limit 1;
-    end if;
+  insert into public.shopping_list_item_sources (item_id, recipe_id, recipe_title, servings_used)
+  values (v_item, v_recipe.id, v_recipe.title, p_servings);
 
-    if v_existing is not null then
-      update public.shopping_list_items set
-        qty_min = qty_min + v_qty_min,
-        qty_max = case
-          when qty_max is null and v_qty_max is null then null
-          else coalesce(qty_max, qty_min) + coalesce(v_qty_max, v_qty_min)
-        end,
-        grams = case when grams is not null and v_grams is not null then grams + v_grams else grams end
-      where id = v_existing
-      returning id into v_item;
-    else
-      v_pos := v_pos + 1;
-      insert into public.shopping_list_items (
-        list_id, ingredient_id, name, aisle, qty_min, qty_max, unit_id, unit_label, grams, position
-      ) values (
-        p_list_id, v_line.ingredient_id, v_name, v_aisle, v_qty_min, v_qty_max,
-        v_line.unit_id, v_line.unit_label, v_grams, v_pos
-      )
-      returning id into v_item;
-    end if;
-
-    insert into public.shopping_list_item_sources (item_id, recipe_id, recipe_title, servings_used)
-    values (v_item, p_recipe_id, v_recipe.title, p_servings);
-
-    v_applied := v_applied + 1;
-  end loop;
-
-  return v_applied;
+  return v_line.ing_name;
 end;
 $$;
 
@@ -353,7 +345,7 @@ revoke execute on function
   public.set_default_list(uuid),
   public.add_manual_item(uuid, text, text),
   public.clear_checked_items(uuid),
-  public.add_recipe_to_list(uuid, uuid, numeric)
+  public.add_ingredient_to_list(uuid, uuid, numeric)
 from public, anon;
 
 grant execute on function
@@ -362,7 +354,7 @@ grant execute on function
   public.set_default_list(uuid),
   public.add_manual_item(uuid, text, text),
   public.clear_checked_items(uuid),
-  public.add_recipe_to_list(uuid, uuid, numeric)
+  public.add_ingredient_to_list(uuid, uuid, numeric)
 to authenticated;
 
 -- ---------------------------------------------------------------------------
