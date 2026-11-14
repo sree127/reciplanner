@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { aiAvailable, aiEstimateNutrition } from "@/lib/ai";
+import { aiAvailable, aiEstimateMacros } from "@/lib/ai";
 import { requireUser } from "@/lib/data";
 import { formatScaled } from "@/lib/kitchen";
-import { getRecipe } from "@/lib/recipes";
+import { addMacros, type EstimateLine, perServingMacros, roundMacros, sumIngredientMacros } from "@/lib/nutrition";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type IngredientHit = {
@@ -136,33 +136,93 @@ export async function saveNutrition(
   return { ok: true };
 }
 
-/** Estimate per-serving macros from the recipe's ingredients with Gemini. Does not save. */
+function toNumber(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Estimate per-serving macros, metric. The ingredient macro database (per 100 g) is the source
+ * of truth: each weighed line contributes (grams / 100) × per-100g, summed and divided by
+ * servings. Gemini only fills in the lines the database can't measure (no weight or no macros,
+ * e.g. "2 piece Tomato"), so believable staples like 400 g tofu are never under-counted. Falls
+ * back to the database-only total when no key is set or the call fails. Does not save.
+ */
 export async function estimateNutrition(
   recipeId: string,
 ): Promise<{ values: NutritionInput } | { error: string }> {
-  if (!aiAvailable()) {
-    return { error: "Nutrition estimates aren't set up. Enter the values yourself." };
+  const { supabase } = await requireUser();
+  const { data: recipe, error: recipeError } = await supabase
+    .from("recipes")
+    .select("title, servings")
+    .eq("id", recipeId)
+    .maybeSingle();
+  if (recipeError) return { error: recipeError.message };
+  if (!recipe) return { error: "Recipe not found." };
+
+  const { data: lines, error: linesError } = await supabase
+    .from("recipe_ingredients")
+    .select("qty_min, qty_max, unit_id, unit_label, grams, optional, ingredient_id, ingredients(name)")
+    .eq("recipe_id", recipeId)
+    .order("position");
+  if (linesError) return { error: linesError.message };
+  const rows = lines ?? [];
+
+  const macroIds = [...new Set(rows.map((r) => r.ingredient_id))];
+  const macroByIngredient = new Map<
+    string,
+    { kcal: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null }
+  >();
+  if (macroIds.length) {
+    const { data: macroRows, error: macroError } = await supabase
+      .from("ingredient_macros")
+      .select("ingredient_id, kcal, protein_g, carbs_g, fat_g")
+      .in("ingredient_id", macroIds);
+    if (macroError) return { error: macroError.message };
+    for (const row of macroRows ?? []) macroByIngredient.set(row.ingredient_id, row);
   }
-  const recipe = await getRecipe(recipeId);
-  const ingredients = recipe.ingredients
-    .filter((line) => !line.optional)
-    .map((line) => `${formatScaled(line.qtyMin, line.qtyMax, line.unitId, line.unitLabel, 1)} ${line.name}`.trim())
-    .filter(Boolean);
-  if (ingredients.length === 0) {
-    return { error: "Add some ingredients first, then estimate." };
+
+  const estimateLines: EstimateLine[] = rows.map((r) => ({
+    name: r.ingredients?.name ?? "Ingredient",
+    grams: toNumber(r.grams),
+    optional: r.optional,
+    per100g: macroByIngredient.get(r.ingredient_id) ?? null,
+  }));
+  const { total, counted } = sumIngredientMacros(estimateLines);
+
+  // Lines the database couldn't measure → let Gemini approximate just those.
+  const unknown: string[] = [];
+  rows.forEach((r, i) => {
+    const line = estimateLines[i];
+    if (line.optional) return;
+    const countable = line.grams != null && line.grams > 0 && line.per100g != null && line.per100g.kcal != null;
+    if (countable) return;
+    const text = `${formatScaled(toNumber(r.qty_min), toNumber(r.qty_max), r.unit_id, r.unit_label, 1)} ${r.ingredients?.name ?? ""}`.trim();
+    if (text) unknown.push(text);
+  });
+
+  let combined = total;
+  let usedAi = false;
+  if (unknown.length > 0 && aiAvailable()) {
+    const aiTotal = await aiEstimateMacros(recipe.title ?? "Recipe", unknown);
+    if (aiTotal) {
+      combined = addMacros(total, aiTotal);
+      usedAi = true;
+    }
   }
-  const result = await aiEstimateNutrition(recipe.title, recipe.servings, ingredients);
-  if (!result) {
-    return { error: "Couldn't estimate nutrition just now. Try again or enter the values yourself." };
+
+  if (counted === 0 && !usedAi) {
+    return {
+      error: aiAvailable()
+        ? "Couldn't estimate nutrition just now. Try again or enter the values yourself."
+        : "No macro data for these ingredients yet. Add a Gemini key to estimate them, or enter the values yourself.",
+    };
   }
-  return {
-    values: {
-      kcal: Math.round(result.kcal),
-      protein: Math.round(result.protein * 10) / 10,
-      carbs: Math.round(result.carbs * 10) / 10,
-      fat: Math.round(result.fat * 10) / 10,
-    },
-  };
+
+  const servings = toNumber(recipe.servings) ?? 1;
+  const values = roundMacros(perServingMacros(combined, servings));
+  return { values };
 }
 
 export async function toggleFavorite(formData: FormData) {

@@ -1,28 +1,33 @@
 import { expect, test } from "@playwright/test";
 import { signInWithCode, uniqueEmail } from "./helpers";
 
-test("edit, save and keep a recipe's nutrition by hand", async ({ browser }) => {
+test("estimates believable macros, then edits and keeps them by hand", async ({ browser }) => {
   const page = await (await browser.newContext()).newPage();
   await signInWithCode(page, uniqueEmail("nutrition"));
   await page.getByLabel("Household name").fill("Macro house");
   await page.getByRole("button", { name: "Create household" }).click();
   await page.waitForURL("**/household?created=1");
 
-  // A simple recipe with one ingredient.
+  // A recipe with 400 g firm tofu over the default 4 servings.
   await page.getByRole("link", { name: "Recipes" }).click();
   await page.getByRole("link", { name: "Add a recipe" }).click();
-  await page.getByLabel("Title").fill("Morning oats");
-  await page.getByLabel("Quantity").first().fill("100");
-  await page.getByLabel("Ingredient").first().fill("Tomato");
-  await page.getByRole("option", { name: /^Tomato/ }).first().click();
+  await page.getByLabel("Title").fill("Tofu bowl");
+  await page.getByLabel("Quantity").first().fill("400");
+  await page.getByLabel("Ingredient").first().fill("Tofu");
+  await page.getByRole("option", { name: /Tofu, firm/ }).first().click();
   await page.getByRole("button", { name: "Save recipe" }).click();
-  await expect(page.getByTestId("recipe-title")).toHaveText("Morning oats");
+  await expect(page.getByTestId("recipe-title")).toHaveText("Tofu bowl");
 
   const macros = page.getByTestId("macros");
 
-  // Estimation isn't configured in tests (no API key): a plain error, and manual editing still works.
+  // Estimate (no API key in tests): the database-backed estimate still fills believable numbers.
+  // 400 g firm tofu over 4 servings is ~17 g protein per serving — the bug produced ~11 g.
   await macros.getByTestId("nutrition-estimate").first().click();
-  await expect(page.getByTestId("nutrition-error")).toContainText(/set up/i);
+  await expect(page.getByTestId("nutrition-protein")).not.toHaveValue("");
+  const protein = Number(await page.getByTestId("nutrition-protein").inputValue());
+  expect(protein).toBeGreaterThan(14);
+  const kcal = Number(await page.getByTestId("nutrition-kcal").inputValue());
+  expect(kcal).toBeGreaterThan(100);
 
   // Enter the four macros by hand and save.
   await page.getByTestId("nutrition-kcal").fill("350");

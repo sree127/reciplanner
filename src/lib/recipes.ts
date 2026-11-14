@@ -1,6 +1,7 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/data";
+import { type EstimateLine, perServingMacros, roundMacros, sumIngredientMacros } from "@/lib/nutrition";
 
 export type RecipeCard = {
   id: string;
@@ -163,29 +164,15 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
     for (const row of macroRows ?? []) macroByIngredient.set(row.ingredient_id, row);
   }
 
-  const total = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
-  const missing: string[] = [];
-  let counted = 0;
-  for (const line of ingredientLines) {
-    if (line.optional) continue;
-    const name = line.ingredients?.name ?? "Ingredient";
-    const grams = num(line.grams);
-    const macro = macroByIngredient.get(line.ingredient_id);
-    if (grams == null || grams <= 0 || !macro || macro.kcal == null) {
-      if (!missing.includes(name)) missing.push(name);
-      continue;
-    }
-    const factor = grams / 100;
-    total.kcal += (macro.kcal ?? 0) * factor;
-    total.protein += (macro.protein_g ?? 0) * factor;
-    total.carbs += (macro.carbs_g ?? 0) * factor;
-    total.fat += (macro.fat_g ?? 0) * factor;
-    counted += 1;
-  }
+  const estimateLines: EstimateLine[] = ingredientLines.map((line) => ({
+    name: line.ingredients?.name ?? "Ingredient",
+    grams: num(line.grams),
+    optional: line.optional,
+    per100g: macroByIngredient.get(line.ingredient_id) ?? null,
+  }));
+  const { total, counted, totalLines: totalIngredients, missing } = sumIngredientMacros(estimateLines);
 
   const servings = num(recipe.servings) ?? 1;
-  const totalIngredients = ingredientLines.filter((l) => !l.optional).length;
-  const round1 = (n: number) => Math.round(n * 10) / 10;
 
   // A stored source (web import or a manual edit) overrides the ingredient estimate.
   const storedSource = recipe.nutrition_source === "web" ? "web" : recipe.nutrition_source === "manual" ? "manual" : null;
@@ -205,13 +192,9 @@ export async function getRecipe(id: string): Promise<RecipeDetail> {
       missing,
     };
   } else if (counted > 0) {
+    const perServing = roundMacros(perServingMacros(total, servings));
     nutrition = {
-      perServing: {
-        kcal: Math.round(total.kcal / servings),
-        protein: round1(total.protein / servings),
-        carbs: round1(total.carbs / servings),
-        fat: round1(total.fat / servings),
-      },
+      perServing,
       source: "estimate",
       countedIngredients: counted,
       totalIngredients,
